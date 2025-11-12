@@ -1,0 +1,75 @@
+[
+  {
+    "id": 1,
+    "name": "Apple Inc.",
+    "symbol": "AAPL",
+    "type": "accion",
+    "quantity": 10,
+    "purchasePrice": 150.50,
+    "currentPrice": 175.30
+  },
+  {
+    "id": 2,
+    "name": "Microsoft Corporation",
+    "symbol": "MSFT",
+    "type": "accion",
+    "quantity": 5,
+    "purchasePrice": 320.00,
+    "currentPrice": 385.50
+  },
+  {
+    "id": 3,
+    "name": "Bitcoin",
+    "symbol": "BTC",
+    "type": "criptomoneda",
+    "quantity": 0.5,
+    "purchasePrice": 45000.00,
+    "currentPrice": 62000.00
+  },
+  {
+    "id": 4,
+    "name": "Ethereum",
+    "symbol": "ETH",
+    "type": "criptomoneda",
+    "quantity": 2.5,
+    "purchasePrice": 2800.00,
+    "currentPrice": 3200.00
+  },
+  {
+    "id": 5,
+    "name": "Tesla Inc.",
+    "symbol": "TSLA",
+    "type": "accion",
+    "quantity": 8,
+    "purchasePrice": 220.00,
+    "currentPrice": 195.75
+  },
+  {
+    "id": 6,
+    "name": "Amazon.com Inc.",
+    "symbol": "AMZN",
+    "type": "accion",
+    "quantity": 3,
+    "purchasePrice": 135.00,
+    "currentPrice": 148.20
+  },
+  {
+    "id": 7,
+    "name": "Fondo Indexado S&P 500",
+    "symbol": "SPY",
+    "type": "fondo",
+    "quantity": 15,
+    "purchasePrice": 420.00,
+    "currentPrice": 445.80
+  },
+  {
+    "id": 8,
+    "name": "Google LLC",
+    "symbol": "GOOGL",
+    "type": "accion",
+    "quantity": 4,
+    "purchasePrice": 125.00,
+    "currentPrice": 142.50
+  }
+]
+
