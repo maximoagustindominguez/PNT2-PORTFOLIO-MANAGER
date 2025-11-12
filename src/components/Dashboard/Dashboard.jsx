@@ -3,7 +3,7 @@ import { AssetCard } from '../AssetCard/AssetCard';
 import { AssetTable } from '../AssetTable/AssetTable';
 import styles from './Dashboard.module.css';
 
-export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCurrentPrice }) => {
+export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCurrentPrice, onResetAsset, onDeleteAsset }) => {
   const [viewMode, setViewMode] = useState('cards');
 
   return (
@@ -34,6 +34,8 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCur
               onAddQuantity={onAddQuantity}
               onReduceQuantity={onReduceQuantity}
               onUpdateCurrentPrice={onUpdateCurrentPrice}
+              onResetAsset={onResetAsset}
+              onDeleteAsset={onDeleteAsset}
             />
           ))}
         </div>

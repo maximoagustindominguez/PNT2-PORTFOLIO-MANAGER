@@ -3,6 +3,13 @@
   margin: 0 auto;
   padding: 2rem;
   min-height: 100vh;
+  transition: filter 0.2s ease, pointer-events 0s;
+}
+
+body.modal-open #root {
+  filter: grayscale(0.5) brightness(0.7);
+  pointer-events: none;
+  user-select: none;
 }
 
 @media (max-width: 768px) {

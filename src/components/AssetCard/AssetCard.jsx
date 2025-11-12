@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CURRENCY_SYMBOL } from '../../constants';
 import styles from './AssetCard.module.css';
 
-export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurrentPrice }) => {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addQuantity, setAddQuantity] = useState('');
-  const [addPrice, setAddPrice] = useState('');
-  const [reduceQuantity, setReduceQuantity] = useState('');
+export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurrentPrice, onResetAsset, onDeleteAsset }) => {
+  const [showModal, setShowModal] = useState(false);
+  const [modalQuantityChange, setModalQuantityChange] = useState('0');
+  const [modalPrice, setModalPrice] = useState(asset.purchasePrice.toString());
   const [editCurrentPrice, setEditCurrentPrice] = useState(false);
   const [newCurrentPrice, setNewCurrentPrice] = useState(asset.currentPrice.toString());
+  const [showMenu, setShowMenu] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // 'reset' o 'delete'
 
   useEffect(() => {
     if (!editCurrentPrice) {
@@ -27,32 +30,106 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
       accion: 'Acción',
       criptomoneda: 'Cripto',
       fondo: 'Fondo',
+      bond: 'Bond',
     };
     return types[type] || type;
   };
 
-  const handleAddQuantity = (e) => {
-    e.preventDefault();
-    const quantity = parseFloat(addQuantity);
-    const price = parseFloat(addPrice);
+  const calculateNewAveragePrice = (quantityChange, purchasePrice) => {
+    const currentQuantity = asset.quantity;
+    const currentPurchasePrice = asset.purchasePrice;
+    
+    // Manejar valores vacíos o inválidos
+    let quantityChangeNum = 0;
+    if (quantityChange !== '' && quantityChange !== '-' && quantityChange !== null && quantityChange !== undefined) {
+      const parsed = parseFloat(quantityChange);
+      quantityChangeNum = isNaN(parsed) ? 0 : parsed;
+    }
+    
+    let purchasePriceNum = 0;
+    if (purchasePrice !== '' && purchasePrice !== '-' && purchasePrice !== null && purchasePrice !== undefined) {
+      const parsed = parseFloat(purchasePrice);
+      purchasePriceNum = isNaN(parsed) ? 0 : parsed;
+    }
 
-    if (quantity > 0 && price > 0) {
-      onAddQuantity(asset.id, quantity, price);
-      setAddQuantity('');
-      setAddPrice('');
-      setShowAddForm(false);
+    // Si no hay cambio en la cantidad, devolver el precio actual
+    if (quantityChangeNum === 0) {
+      return currentPurchasePrice;
+    }
+
+    if (quantityChangeNum > 0) {
+      // Agregar cantidad
+      if (currentQuantity === 0) {
+        // Si la cantidad actual es 0, el nuevo precio es el precio de compra ingresado
+        return purchasePriceNum > 0 ? purchasePriceNum : currentPurchasePrice;
+      }
+      // Si no hay precio de compra válido, mantener el precio actual
+      if (purchasePriceNum <= 0) {
+        return currentPurchasePrice;
+      }
+      // Calcular el nuevo precio promedio ponderado
+      const totalCurrentValue = currentQuantity * currentPurchasePrice;
+      const newQuantityValue = quantityChangeNum * purchasePriceNum;
+      const newTotalQuantity = currentQuantity + quantityChangeNum;
+      const newAverage = (totalCurrentValue + newQuantityValue) / newTotalQuantity;
+      return newAverage;
+    } else {
+      // Reducir cantidad - el precio promedio no cambia al reducir
+      return currentPurchasePrice;
     }
   };
 
-  const handleReduceQuantity = (e) => {
+  const handleModalSubmit = (e) => {
     e.preventDefault();
-    const quantity = parseFloat(reduceQuantity);
+    const quantityChange = parseFloat(modalQuantityChange) || 0;
+    const purchasePrice = parseFloat(modalPrice);
 
-    if (quantity > 0) {
-      onReduceQuantity(asset.id, quantity);
-      setReduceQuantity('');
+    if (purchasePrice <= 0 && quantityChange > 0) return;
+
+    if (quantityChange > 0) {
+      // Agregar cantidad
+      onAddQuantity(asset.id, quantityChange, purchasePrice);
+    } else if (quantityChange < 0) {
+      // Reducir cantidad
+      onReduceQuantity(asset.id, Math.abs(quantityChange));
     }
+
+    setShowModal(false);
   };
+
+  const handleModalCancel = () => {
+    setModalQuantityChange('0');
+    setModalPrice(asset.purchasePrice.toString());
+    setShowModal(false);
+  };
+
+  const handleOpenModal = () => {
+    setModalQuantityChange('0');
+    setModalPrice(asset.purchasePrice.toString());
+    setShowModal(true);
+  };
+
+  const handleIncrementQuantity = () => {
+    const current = parseFloat(modalQuantityChange) || 0;
+    setModalQuantityChange((current + 1).toString());
+  };
+
+  const handleDecrementQuantity = () => {
+    const current = parseFloat(modalQuantityChange) || 0;
+    const newValue = Math.max(-asset.quantity, current - 1);
+    setModalQuantityChange(newValue.toString());
+  };
+
+  // Calcular el nuevo precio promedio en tiempo real
+  const newAveragePrice = calculateNewAveragePrice(modalQuantityChange, modalPrice);
+  
+  const quantityChangeNum = (() => {
+    if (modalQuantityChange === '' || modalQuantityChange === '-') return 0;
+    const parsed = parseFloat(modalQuantityChange);
+    return isNaN(parsed) ? 0 : parsed;
+  })();
+  
+  const newQuantity = asset.quantity + quantityChangeNum;
 
   const handleUpdateCurrentPrice = (e) => {
     e.preventDefault();
@@ -64,9 +141,67 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
     }
   };
 
-  const handleQuickReduce = (amount) => {
-    onReduceQuantity(asset.id, amount);
+  const handleResetAsset = () => {
+    setConfirmAction('reset');
+    setShowConfirmModal(true);
+    setShowMenu(false);
   };
+
+  const handleDeleteAsset = () => {
+    setConfirmAction('delete');
+    setShowConfirmModal(true);
+    setShowMenu(false);
+  };
+
+  const handleConfirmAction = () => {
+    if (confirmAction === 'reset') {
+      onResetAsset(asset.id);
+    } else if (confirmAction === 'delete') {
+      onDeleteAsset(asset.id);
+    }
+    setShowConfirmModal(false);
+    setConfirmAction(null);
+  };
+
+  const handleCancelConfirm = () => {
+    setShowConfirmModal(false);
+    setConfirmAction(null);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showMenu && !event.target.closest(`.${styles.menuContainer}`)) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMenu]);
+
+  // Deshabilitar scroll y grisar el fondo cuando el modal está abierto
+  useEffect(() => {
+    if (showModal || showConfirmModal) {
+      // Prevenir scroll del body
+      document.body.style.overflow = 'hidden';
+      // Agregar clase al body para grisar el contenido
+      document.body.classList.add('modal-open');
+    } else {
+      // Restaurar scroll
+      document.body.style.overflow = '';
+      // Remover clase
+      document.body.classList.remove('modal-open');
+    }
+
+    // Cleanup
+    return () => {
+      document.body.style.overflow = '';
+      document.body.classList.remove('modal-open');
+    };
+  }, [showModal, showConfirmModal]);
+
 
   return (
     <div className={styles.card}>
@@ -75,33 +210,56 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
           <h3 className={styles.name}>{asset.name}</h3>
           <span className={styles.symbol}>{asset.symbol}</span>
         </div>
-        <span className={styles.type}>{getTypeLabel(asset.type)}</span>
+        <div className={styles.headerRight}>
+          <span className={styles.type}>{getTypeLabel(asset.type)}</span>
+          <div className={styles.menuContainer}>
+            <button
+              type="button"
+              className={styles.menuButton}
+              onClick={() => setShowMenu(!showMenu)}
+              aria-label="Menú de opciones"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 0L9.5 2.5L12.5 1.5L13.5 4.5L16 5.5V10.5L13.5 11.5L12.5 14.5L9.5 13.5L8 16L6.5 13.5L3.5 14.5L2.5 11.5L0 10.5V5.5L2.5 4.5L3.5 1.5L6.5 2.5L8 0Z"
+                  fill="currentColor"
+                  fillOpacity="0.8"
+                />
+                <circle cx="8" cy="8" r="3" fill="currentColor" />
+              </svg>
+            </button>
+            {showMenu && (
+              <div className={styles.dropdownMenu}>
+                <button
+                  type="button"
+                  className={styles.menuItem}
+                  onClick={handleResetAsset}
+                >
+                  Resetear a 0
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.menuItem} ${styles.menuItemDanger}`}
+                  onClick={handleDeleteAsset}
+                >
+                  Eliminar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className={styles.content}>
         <div className={styles.row}>
           <span className={styles.label}>Cantidad</span>
-          <div className={styles.quantityControls}>
-            <span className={styles.value}>{asset.quantity}</span>
-            <div className={styles.quickButtons}>
-              <button
-                type="button"
-                className={styles.quickBtn}
-                onClick={() => handleQuickReduce(1)}
-                disabled={asset.quantity === 0}
-              >
-                -1
-              </button>
-              <button
-                type="button"
-                className={styles.quickBtn}
-                onClick={() => handleQuickReduce(asset.quantity)}
-                disabled={asset.quantity === 0}
-              >
-                Reset
-              </button>
-            </div>
-          </div>
+          <span className={styles.value}>{asset.quantity}</span>
         </div>
 
         <div className={styles.row}>
@@ -173,80 +331,173 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
       </div>
 
       <div className={styles.actions}>
-        {!showAddForm ? (
-          <button
-            type="button"
-            className={styles.actionButton}
-            onClick={() => setShowAddForm(true)}
+        <button
+          type="button"
+          className={styles.actionButton}
+          onClick={handleOpenModal}
+        >
+          Modificar cantidad del activo
+        </button>
+      </div>
+
+      {showModal &&
+        createPortal(
+          <div
+            className={styles.modalOverlay}
+            onClick={(e) => {
+              // Solo cerrar si el clic es directamente en el overlay, no en el contenido
+              if (e.target === e.currentTarget) {
+                handleModalCancel();
+              }
+            }}
           >
-            Agregar Cantidad
-          </button>
-        ) : (
-          <form onSubmit={handleAddQuantity} className={styles.addForm}>
-            <div className={styles.formRow}>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Cantidad"
-                value={addQuantity}
-                onChange={(e) => setAddQuantity(e.target.value)}
-                className={styles.formInput}
-                required
-              />
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Precio compra"
-                value={addPrice}
-                onChange={(e) => setAddPrice(e.target.value)}
-                className={styles.formInput}
-                required
-              />
+            <div
+              className={styles.modalContent}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className={styles.modalTitle}>Modificar cantidad del activo</h3>
+              <form onSubmit={handleModalSubmit} className={styles.modalForm}>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalLabel}>Cantidad actual</label>
+                  <div className={styles.modalCurrentValue}>
+                    {asset.quantity.toLocaleString('es-AR', {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2,
+                    })}
+                  </div>
+                </div>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalLabel}>Variación de cantidad</label>
+                  <div className={styles.quantityInputGroup}>
+                    <button
+                      type="button"
+                      onClick={handleDecrementQuantity}
+                      className={styles.quantityButton}
+                      disabled={parseFloat(modalQuantityChange) <= -asset.quantity}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      step="1"
+                      value={modalQuantityChange}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === '' || value === '-') {
+                          setModalQuantityChange(value);
+                        } else {
+                          const numValue = parseFloat(value);
+                          if (!isNaN(numValue)) {
+                            const clampedValue = Math.max(-asset.quantity, numValue);
+                            setModalQuantityChange(clampedValue.toString());
+                          }
+                        }
+                      }}
+                      className={styles.modalInput}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleIncrementQuantity}
+                      className={styles.quantityButton}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalLabel}>Precio de compra</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={modalPrice}
+                    onChange={(e) => setModalPrice(e.target.value)}
+                    className={styles.modalInput}
+                    required={parseFloat(modalQuantityChange) > 0}
+                  />
+                </div>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalLabel}>Variación de PPC</label>
+                  <div className={styles.modalCurrentValue}>
+                    {CURRENCY_SYMBOL}
+                    {Number.isFinite(newAveragePrice) 
+                      ? newAveragePrice.toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      : asset.purchasePrice.toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                    }
+                  </div>
+                </div>
+                <div className={styles.modalButtons}>
+                  <button
+                    type="button"
+                    onClick={handleModalCancel}
+                    className={styles.modalCancelBtn}
+                  >
+                    Rechazar
+                  </button>
+                  <button
+                    type="submit"
+                    className={styles.modalAcceptBtn}
+                    disabled={
+                      parseFloat(modalQuantityChange) === 0 ||
+                      (parseFloat(modalQuantityChange) > 0 && parseFloat(modalPrice) <= 0)
+                    }
+                  >
+                    Aceptar
+                  </button>
+                </div>
+              </form>
             </div>
-            <div className={styles.formButtons}>
-              <button type="submit" className={styles.submitBtn}>
-                Agregar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddForm(false);
-                  setAddQuantity('');
-                  setAddPrice('');
-                }}
-                className={styles.cancelBtn}
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
+          </div>,
+          document.body
         )}
 
-        <form onSubmit={handleReduceQuantity} className={styles.reduceForm}>
-          <div className={styles.formRow}>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Cantidad a reducir"
-              value={reduceQuantity}
-              onChange={(e) => setReduceQuantity(e.target.value)}
-              className={styles.formInput}
-              max={asset.quantity}
-            />
-            <button
-              type="submit"
-              className={styles.reduceBtn}
-              disabled={
-                !reduceQuantity ||
-                parseFloat(reduceQuantity) <= 0 ||
-                parseFloat(reduceQuantity) > asset.quantity
+      {showConfirmModal &&
+        createPortal(
+          <div
+            className={styles.modalOverlay}
+            onClick={(e) => {
+              // Solo cerrar si el clic es directamente en el overlay, no en el contenido
+              if (e.target === e.currentTarget) {
+                handleCancelConfirm();
               }
+            }}
+          >
+            <div
+              className={styles.modalContent}
+              onClick={(e) => e.stopPropagation()}
             >
-              Reducir
-            </button>
-          </div>
-        </form>
-      </div>
+              <h3 className={styles.modalTitle}>Confirmar acción</h3>
+              <div className={styles.confirmMessage}>
+                <p>
+                  Atención: esta acción no puede deshacerse, si elimina el asset o resetea sus valores deberá cargarlos nuevamente.
+                </p>
+              </div>
+              <div className={styles.modalButtons}>
+                <button
+                  type="button"
+                  onClick={handleCancelConfirm}
+                  className={confirmAction === 'delete' ? styles.modalCancelBtnSafe : styles.modalCancelBtn}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmAction}
+                  className={`${styles.modalAcceptBtn} ${confirmAction === 'delete' ? styles.deleteBtn : ''}`}
+                >
+                  {confirmAction === 'reset' ? 'Resetear' : 'Eliminar'}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
       <div className={`${styles.footer} ${isProfit ? styles.profit : styles.loss}`}>
         <div className={styles.profitLabel}>{isProfit ? 'Ganancia' : 'Pérdida'}</div>

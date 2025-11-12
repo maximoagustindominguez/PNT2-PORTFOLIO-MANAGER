@@ -70,5 +70,14 @@
     "quantity": 4,
     "purchasePrice": 125.0,
     "currentPrice": 142.5
+  },
+  {
+    "id": 9,
+    "name": "US Treasury Bond",
+    "symbol": "US10Y",
+    "type": "bond",
+    "quantity": 100,
+    "purchasePrice": 98.5,
+    "currentPrice": 99.2
   }
 ]

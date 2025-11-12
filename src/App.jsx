@@ -65,6 +65,18 @@ function App() {
     );
   };
 
+  const resetAsset = (assetId) => {
+    setAssets((prevAssets) =>
+      prevAssets.map((asset) =>
+        asset.id === assetId ? { ...asset, quantity: 0 } : asset
+      )
+    );
+  };
+
+  const deleteAsset = (assetId) => {
+    setAssets((prevAssets) => prevAssets.filter((asset) => asset.id !== assetId));
+  };
+
   const calculateTotalValue = () => {
     return assets.reduce((total, asset) => {
       return total + asset.quantity * asset.currentPrice;
@@ -98,6 +110,8 @@ function App() {
         onAddQuantity={addAssetQuantity}
         onReduceQuantity={reduceAssetQuantity}
         onUpdateCurrentPrice={updateCurrentPrice}
+        onResetAsset={resetAsset}
+        onDeleteAsset={deleteAsset}
       />
     </>
   );

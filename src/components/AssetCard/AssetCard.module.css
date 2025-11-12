@@ -9,6 +9,12 @@
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
+  position: relative;
+}
+
+body.modal-open .card:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .card:hover {
@@ -22,6 +28,12 @@
   align-items: flex-start;
   padding-bottom: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .nameSection {
@@ -53,6 +65,87 @@
   letter-spacing: 0.5px;
 }
 
+.menuContainer {
+  position: relative;
+}
+
+.menuButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menuButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.menuButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background-color: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  min-width: 160px;
+  z-index: 100;
+  overflow: hidden;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.menuItem:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.menuItemDanger {
+  color: #f87171;
+}
+
+.menuItemDanger:hover {
+  background-color: rgba(248, 113, 113, 0.1);
+  color: #ef4444;
+}
+
 .content {
   display: flex;
   flex-direction: column;
@@ -82,37 +175,6 @@
   color: rgba(255, 255, 255, 0.95);
 }
 
-.quantityControls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.quickButtons {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.quickBtn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  background-color: #3a3a3a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  cursor: pointer;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.quickBtn:hover:not(:disabled) {
-  background-color: #4a4a4a;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.quickBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
 
 .priceControls {
   display: flex;
@@ -193,6 +255,211 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Modal Styles */
+.modalOverlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999 !important;
+  cursor: default;
+  pointer-events: auto;
+  isolation: isolate;
+}
+
+.modalContent {
+  position: relative;
+  background-color: #2a2a2a;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  z-index: 10000;
+  margin: auto;
+}
+
+.modalTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+.confirmMessage {
+  margin: 1rem 0;
+  padding: 1rem;
+  background-color: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 8px;
+}
+
+.confirmMessage p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.modalFormGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modalLabel {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.modalInput {
+  padding: 0.75rem;
+  font-size: 1rem;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  transition: border-color 0.2s ease;
+  width: 100%;
+}
+
+.modalInput:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.modalInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.modalCurrentValue {
+  padding: 0.75rem;
+  font-size: 1rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.quantityInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quantityInputGroup .modalInput {
+  flex: 1;
+  text-align: center;
+}
+
+.quantityButton {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  background-color: #3a3a3a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quantityButton:hover:not(:disabled) {
+  background-color: #4a4a4a;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.quantityButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.modalButtons {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.modalCancelBtn,
+.modalAcceptBtn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.modalCancelBtn {
+  background-color: #f87171;
+  color: #1a1a1a;
+}
+
+.modalCancelBtn:hover {
+  background-color: #ef4444;
+}
+
+.modalCancelBtnSafe {
+  background-color: #4ade80;
+  color: #1a1a1a;
+}
+
+.modalCancelBtnSafe:hover {
+  background-color: #22c55e;
+}
+
+.modalAcceptBtn {
+  background-color: #4ade80;
+  color: #1a1a1a;
+}
+
+.modalAcceptBtn:hover:not(:disabled) {
+  background-color: #22c55e;
+}
+
+.modalAcceptBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteBtn {
+  background-color: #f87171 !important;
+  color: #1a1a1a !important;
+}
+
+.deleteBtn:hover:not(:disabled) {
+  background-color: #ef4444 !important;
+}
+
 .actionButton {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
@@ -210,82 +477,6 @@
   border-color: #535bf2;
 }
 
-.addForm,
-.reduceForm {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.formRow {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.formInput {
-  flex: 1;
-  padding: 0.5rem;
-  font-size: 0.9rem;
-  background-color: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.9);
-  border-radius: 6px;
-}
-
-.formInput:focus {
-  outline: none;
-  border-color: #646cff;
-}
-
-.formInput::placeholder {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.formButtons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.submitBtn {
-  flex: 1;
-  padding: 0.5rem;
-  font-size: 0.9rem;
-  background-color: #4ade80;
-  border: 1px solid #4ade80;
-  color: #1a1a1a;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  font-weight: 600;
-}
-
-.submitBtn:hover {
-  background-color: #22c55e;
-  border-color: #22c55e;
-}
-
-.reduceBtn {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  background-color: #f87171;
-  border: 1px solid #f87171;
-  color: #1a1a1a;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.reduceBtn:hover:not(:disabled) {
-  background-color: #ef4444;
-  border-color: #ef4444;
-}
-
-.reduceBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
 
 .footer {
   padding-top: 1rem;
@@ -335,19 +526,33 @@
     font-size: 1.25rem;
   }
 
-  .formRow {
-    flex-direction: column;
-  }
-
-  .quantityControls {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
   .priceControls {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  .headerRight {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .dropdownMenu {
+    min-width: 140px;
+  }
+
+  .modalContent {
+    padding: 1.5rem;
+    width: 95%;
+  }
+
+  .modalTitle {
+    font-size: 1.1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .modalForm {
+    gap: 1rem;
   }
 }
