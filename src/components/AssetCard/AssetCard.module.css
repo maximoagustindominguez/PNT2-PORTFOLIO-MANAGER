@@ -1,0 +1,352 @@
+.card {
+  background-color: #2a2a2a;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nameSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0;
+}
+
+.symbol {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.type {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.label {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.value {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.totalValue {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.quantityControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quickButtons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.quickBtn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background-color: #3a3a3a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.quickBtn:hover:not(:disabled) {
+  background-color: #4a4a4a;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.quickBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.priceControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editBtn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background-color: #3a3a3a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.editBtn:hover {
+  background-color: #4a4a4a;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.priceForm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.priceInput {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  width: 100px;
+}
+
+.priceInput:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.saveBtn,
+.cancelBtn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.saveBtn {
+  background-color: #4ade80;
+  color: #1a1a1a;
+}
+
+.saveBtn:hover {
+  background-color: #22c55e;
+}
+
+.cancelBtn {
+  background-color: #f87171;
+  color: #1a1a1a;
+}
+
+.cancelBtn:hover {
+  background-color: #ef4444;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.actionButton {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background-color: #646cff;
+  border: 1px solid #646cff;
+  color: rgba(255, 255, 255, 0.95);
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.actionButton:hover {
+  background-color: #535bf2;
+  border-color: #535bf2;
+}
+
+.addForm,
+.reduceForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.formInput {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  background-color: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+.formInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.formButtons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.submitBtn {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  background-color: #4ade80;
+  border: 1px solid #4ade80;
+  color: #1a1a1a;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-weight: 600;
+}
+
+.submitBtn:hover {
+  background-color: #22c55e;
+  border-color: #22c55e;
+}
+
+.reduceBtn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  background-color: #f87171;
+  border: 1px solid #f87171;
+  color: #1a1a1a;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.reduceBtn:hover:not(:disabled) {
+  background-color: #ef4444;
+  border-color: #ef4444;
+}
+
+.reduceBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.footer {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.profitLabel {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.profitValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.profitPercentage {
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.profit .profitValue,
+.profit .profitPercentage {
+  color: #4ade80;
+}
+
+.loss .profitValue,
+.loss .profitPercentage {
+  color: #f87171;
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 1.25rem;
+  }
+  
+  .name {
+    font-size: 1.1rem;
+  }
+  
+  .profitValue {
+    font-size: 1.25rem;
+  }
+
+  .formRow {
+    flex-direction: column;
+  }
+
+  .quantityControls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .priceControls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
