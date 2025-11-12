@@ -1,0 +1,47 @@
+.dashboard {
+  width: 100%;
+}
+
+.controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+
+.controls button {
+  padding: 0.75rem 1.5rem;
+  background-color: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+}
+
+.controls button:hover {
+  background-color: #3a3a3a;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.controls button.active {
+  background-color: #646cff;
+  color: rgba(255, 255, 255, 0.95);
+  border-color: #646cff;
+}
+
+.cardsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .cardsContainer {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .controls {
+    margin-bottom: 1.5rem;
+  }
+}
+
