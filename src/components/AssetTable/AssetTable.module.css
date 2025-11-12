@@ -83,15 +83,14 @@
   .tableContainer {
     border-radius: 8px;
   }
-  
+
   .table th,
   .table td {
     padding: 0.75rem 0.5rem;
     font-size: 0.85rem;
   }
-  
+
   .table th {
     font-size: 0.75rem;
   }
 }
-

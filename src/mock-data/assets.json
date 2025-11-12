@@ -5,8 +5,8 @@
     "symbol": "AAPL",
     "type": "accion",
     "quantity": 10,
-    "purchasePrice": 150.50,
-    "currentPrice": 175.30
+    "purchasePrice": 150.5,
+    "currentPrice": 175.3
   },
   {
     "id": 2,
@@ -14,8 +14,8 @@
     "symbol": "MSFT",
     "type": "accion",
     "quantity": 5,
-    "purchasePrice": 320.00,
-    "currentPrice": 385.50
+    "purchasePrice": 320.0,
+    "currentPrice": 385.5
   },
   {
     "id": 3,
@@ -23,8 +23,8 @@
     "symbol": "BTC",
     "type": "criptomoneda",
     "quantity": 0.5,
-    "purchasePrice": 45000.00,
-    "currentPrice": 62000.00
+    "purchasePrice": 45000.0,
+    "currentPrice": 62000.0
   },
   {
     "id": 4,
@@ -32,8 +32,8 @@
     "symbol": "ETH",
     "type": "criptomoneda",
     "quantity": 2.5,
-    "purchasePrice": 2800.00,
-    "currentPrice": 3200.00
+    "purchasePrice": 2800.0,
+    "currentPrice": 3200.0
   },
   {
     "id": 5,
@@ -41,7 +41,7 @@
     "symbol": "TSLA",
     "type": "accion",
     "quantity": 8,
-    "purchasePrice": 220.00,
+    "purchasePrice": 220.0,
     "currentPrice": 195.75
   },
   {
@@ -50,8 +50,8 @@
     "symbol": "AMZN",
     "type": "accion",
     "quantity": 3,
-    "purchasePrice": 135.00,
-    "currentPrice": 148.20
+    "purchasePrice": 135.0,
+    "currentPrice": 148.2
   },
   {
     "id": 7,
@@ -59,8 +59,8 @@
     "symbol": "SPY",
     "type": "fondo",
     "quantity": 15,
-    "purchasePrice": 420.00,
-    "currentPrice": 445.80
+    "purchasePrice": 420.0,
+    "currentPrice": 445.8
   },
   {
     "id": 8,
@@ -68,8 +68,7 @@
     "symbol": "GOOGL",
     "type": "accion",
     "quantity": 4,
-    "purchasePrice": 125.00,
-    "currentPrice": 142.50
+    "purchasePrice": 125.0,
+    "currentPrice": 142.5
   }
 ]
-
