@@ -42,7 +42,7 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCur
           onClick={() => setViewMode('table')}
           className={viewMode === 'table' ? styles.active : ''}
         >
-          Tabla
+          Posición Consolidada
         </button>
       </div>
 
