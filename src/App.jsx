@@ -77,6 +77,26 @@ function App() {
     setAssets((prevAssets) => prevAssets.filter((asset) => asset.id !== assetId));
   };
 
+  const addNewAsset = (type, symbol, quantity) => {
+    // Generar un nuevo ID (el máximo ID actual + 1)
+    const maxId = assets.length > 0 ? Math.max(...assets.map((a) => a.id)) : 0;
+    const newId = maxId + 1;
+
+    // Por ahora, usar el symbol como name temporalmente
+    // En el futuro se obtendrá del API basado en el ticker
+    const newAsset = {
+      id: newId,
+      name: symbol, // Temporal: en el futuro se obtendrá del API
+      symbol: symbol,
+      type: type,
+      quantity: parseFloat(quantity) || 0,
+      purchasePrice: 0, // Se establecerá cuando se agregue cantidad
+      currentPrice: 0, // Se obtendrá del API en el futuro
+    };
+
+    setAssets((prevAssets) => [...prevAssets, newAsset]);
+  };
+
   const calculateTotalValue = () => {
     return assets.reduce((total, asset) => {
       return total + asset.quantity * asset.currentPrice;
@@ -112,6 +132,7 @@ function App() {
         onUpdateCurrentPrice={updateCurrentPrice}
         onResetAsset={resetAsset}
         onDeleteAsset={deleteAsset}
+        onAddNewAsset={addNewAsset}
       />
     </>
   );
