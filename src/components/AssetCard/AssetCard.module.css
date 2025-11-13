@@ -255,6 +255,38 @@ body.modal-open .card:hover {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.cardActions {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.cardActionButton {
+  padding: 0.35rem 0.85rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 160px;
+  text-align: left;
+  line-height: 1.3;
+}
+
+.cardActionButton:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.95);
+}
+
 /* Modal Styles */
 .modalOverlay {
   position: fixed !important;

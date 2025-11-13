@@ -340,6 +340,30 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
         </button>
       </div>
 
+      <div className={styles.cardActions}>
+        <button
+          type="button"
+          className={styles.cardActionButton}
+          onClick={() => {}}
+        >
+          Analizar este activo
+        </button>
+        <button
+          type="button"
+          className={styles.cardActionButton}
+          onClick={() => {}}
+        >
+          Noticias sobre este activo
+        </button>
+        <button
+          type="button"
+          className={styles.cardActionButton}
+          onClick={() => {}}
+        >
+          Programar alerta
+        </button>
+      </div>
+
       {showModal &&
         createPortal(
           <div
