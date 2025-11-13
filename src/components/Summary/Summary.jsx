@@ -254,40 +254,6 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
             >
               <h3 className={styles.modalTitle}>Detalle de Ganancia/Pérdida</h3>
               
-              <div className={styles.timeframeSelector}>
-                <label className={styles.timeframeLabel}>Temporalidad:</label>
-                <select
-                  value={timeframe}
-                  onChange={(e) => setTimeframe(e.target.value)}
-                  className={styles.timeframeSelect}
-                >
-                  <option value="diario">Diario</option>
-                  <option value="3dias">3 Días</option>
-                  <option value="semanal">Semanal</option>
-                  <option value="mensual">Mensual</option>
-                  <option value="trimestral">Trimestral</option>
-                  <option value="semestral">Semestral</option>
-                  <option value="anual">Anual</option>
-                  <option value="todo">Todo el tiempo</option>
-                </select>
-              </div>
-
-              <div className={`${styles.totalSummary} ${isProfit ? styles.totalProfit : styles.totalLoss}`}>
-                <div className={styles.totalLabel}>Total Ganancia/Pérdida</div>
-                <div className={styles.totalValue}>
-                  {isProfit ? '+' : ''}
-                  {CURRENCY_SYMBOL}
-                  {totalProfit.toLocaleString('es-AR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </div>
-                <div className={styles.totalPercentage}>
-                  {isProfit ? '+' : ''}
-                  {profitPercentage}%
-                </div>
-              </div>
-
               <div className={styles.chartContainer} ref={chartRef}>
                 {profitByType.length > 0 ? (
                   <ResponsiveContainer width="100%" height={400}>
@@ -344,6 +310,65 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
                 ) : (
                   <div className={styles.noData}>No hay datos para mostrar</div>
                 )}
+              </div>
+
+              <div className={styles.timeframeBar}>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe('diario')}
+                  className={`${styles.timeframeButton} ${timeframe === 'diario' ? styles.timeframeButtonActive : ''}`}
+                >
+                  1d
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe('3dias')}
+                  className={`${styles.timeframeButton} ${timeframe === '3dias' ? styles.timeframeButtonActive : ''}`}
+                >
+                  3d
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe('semanal')}
+                  className={`${styles.timeframeButton} ${timeframe === 'semanal' ? styles.timeframeButtonActive : ''}`}
+                >
+                  1sem
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe('mensual')}
+                  className={`${styles.timeframeButton} ${timeframe === 'mensual' ? styles.timeframeButtonActive : ''}`}
+                >
+                  1mes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe('trimestral')}
+                  className={`${styles.timeframeButton} ${timeframe === 'trimestral' ? styles.timeframeButtonActive : ''}`}
+                >
+                  3meses
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe('semestral')}
+                  className={`${styles.timeframeButton} ${timeframe === 'semestral' ? styles.timeframeButtonActive : ''}`}
+                >
+                  6meses
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe('anual')}
+                  className={`${styles.timeframeButton} ${timeframe === 'anual' ? styles.timeframeButtonActive : ''}`}
+                >
+                  1año
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimeframe('todo')}
+                  className={`${styles.timeframeButton} ${timeframe === 'todo' ? styles.timeframeButtonActive : ''}`}
+                >
+                  Todo el tiempo
+                </button>
               </div>
 
               <button

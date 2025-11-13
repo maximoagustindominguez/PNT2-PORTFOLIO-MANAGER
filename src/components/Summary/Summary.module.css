@@ -121,38 +121,41 @@
   text-align: center;
 }
 
-.timeframeSelector {
+.timeframeBar {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-  padding: 1rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
   background-color: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
+  padding: 0.25rem;
+  gap: 0.25rem;
+  overflow-x: auto;
 }
 
-.timeframeLabel {
-  font-size: 0.9rem;
+.timeframeButton {
+  flex: 1;
+  min-width: fit-content;
+  padding: 0.5rem 0.75rem;
+  background-color: transparent;
+  border: none;
   color: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  font-size: 0.85rem;
   font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
   white-space: nowrap;
 }
 
-.timeframeSelect {
-  flex: 1;
-  padding: 0.5rem 1rem;
-  background-color: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+.timeframeButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.9);
-  border-radius: 6px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: border-color 0.2s ease;
 }
 
-.timeframeSelect:focus {
-  outline: none;
-  border-color: #646cff;
+.timeframeButtonActive {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
 }
 
 .chartContainer {
@@ -367,10 +370,14 @@
     margin-bottom: 1.25rem;
   }
 
-  .timeframeSelector {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
+  .timeframeBar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .timeframeButton {
+    flex: 1 1 auto;
+    min-width: calc(50% - 0.25rem);
   }
 
   .chartContainer {
