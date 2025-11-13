@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENCY_SYMBOL } from '../../constants';
+import { useModal } from '../../hooks/useModal';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -10,7 +11,7 @@ import styles from './AssetTable.module.css';
 export const AssetTable = ({ assets }) => {
   const [sortColumn, setSortColumn] = useState('activo'); // Ordenamiento por defecto
   const [sortDirection, setSortDirection] = useState('asc'); // 'asc' o 'desc'
-  const [showExportModal, setShowExportModal] = useState(false);
+  const { isOpen: showExportModal, openModal: openExportModal, closeModal: closeExportModal } = useModal(false);
 
   const getTypeLabel = (type) => {
     const types = {
@@ -107,7 +108,7 @@ export const AssetTable = ({ assets }) => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Activos');
     XLSX.writeFile(wb, 'activos_portfolio.xlsx');
-    setShowExportModal(false);
+    closeExportModal();
   };
 
   const exportToPDF = () => {
@@ -149,7 +150,7 @@ export const AssetTable = ({ assets }) => {
     });
 
     doc.save('activos_portfolio.pdf');
-    setShowExportModal(false);
+    closeExportModal();
   };
 
   const exportToJPG = async () => {
@@ -170,7 +171,7 @@ export const AssetTable = ({ assets }) => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setShowExportModal(false);
+      closeExportModal();
     } catch (error) {
       console.error('Error al exportar a JPG:', error);
     }
@@ -187,21 +188,6 @@ export const AssetTable = ({ assets }) => {
     }
   };
 
-  // Deshabilitar scroll y grisar el fondo cuando el modal está abierto
-  useEffect(() => {
-    if (showExportModal) {
-      document.body.style.overflow = 'hidden';
-      document.body.classList.add('modal-open');
-    } else {
-      document.body.style.overflow = '';
-      document.body.classList.remove('modal-open');
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-      document.body.classList.remove('modal-open');
-    };
-  }, [showExportModal]);
 
   return (
     <div className={styles.tableContainer} id="asset-table-container">
@@ -376,7 +362,7 @@ export const AssetTable = ({ assets }) => {
       <div className={styles.exportContainer}>
         <button
           type="button"
-          onClick={() => setShowExportModal(true)}
+          onClick={openExportModal}
           className={styles.exportConsolidatedButton}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -395,7 +381,7 @@ export const AssetTable = ({ assets }) => {
             className={styles.modalOverlay}
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                setShowExportModal(false);
+                closeExportModal();
               }
             }}
           >
@@ -448,7 +434,7 @@ export const AssetTable = ({ assets }) => {
               </div>
               <button
                 type="button"
-                onClick={() => setShowExportModal(false)}
+                onClick={closeExportModal}
                 className={styles.modalCancelBtn}
               >
                 Cancelar

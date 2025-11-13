@@ -1,31 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AssetCard } from '../AssetCard/AssetCard';
 import { AssetTable } from '../AssetTable/AssetTable';
+import { useModal } from '../../hooks/useModal';
 import styles from './Dashboard.module.css';
 
 export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCurrentPrice, onResetAsset, onDeleteAsset, onAddNewAsset }) => {
   const [viewMode, setViewMode] = useState('cards');
-  const [showAddModal, setShowAddModal] = useState(false);
+  const { isOpen: showAddModal, openModal: openAddModal, closeModal: closeAddModal } = useModal(false);
   const [newAssetType, setNewAssetType] = useState('accion');
   const [newAssetSymbol, setNewAssetSymbol] = useState('');
   const [newAssetQuantity, setNewAssetQuantity] = useState('');
-
-  // Deshabilitar scroll y grisar el fondo cuando el modal está abierto
-  useEffect(() => {
-    if (showAddModal) {
-      document.body.style.overflow = 'hidden';
-      document.body.classList.add('modal-open');
-    } else {
-      document.body.style.overflow = '';
-      document.body.classList.remove('modal-open');
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-      document.body.classList.remove('modal-open');
-    };
-  }, [showAddModal]);
 
   return (
     <div className={styles.dashboard}>
@@ -63,7 +48,7 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCur
             <button
               type="button"
               className={styles.addCardButton}
-              onClick={() => setShowAddModal(true)}
+              onClick={openAddModal}
               aria-label="Agregar nuevo activo"
             >
               <svg
@@ -93,7 +78,7 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCur
             className={styles.modalOverlay}
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                setShowAddModal(false);
+                closeAddModal();
                 setNewAssetType('accion');
                 setNewAssetSymbol('');
                 setNewAssetQuantity('');
@@ -110,7 +95,7 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCur
                   e.preventDefault();
                   if (newAssetSymbol.trim() && newAssetQuantity) {
                     onAddNewAsset(newAssetType, newAssetSymbol.trim(), newAssetQuantity);
-                    setShowAddModal(false);
+                    closeAddModal();
                     setNewAssetType('accion');
                     setNewAssetSymbol('');
                     setNewAssetQuantity('');
@@ -161,7 +146,7 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCur
                   <button
                     type="button"
                     onClick={() => {
-                      setShowAddModal(false);
+                      closeAddModal();
                       setNewAssetType('accion');
                       setNewAssetSymbol('');
                       setNewAssetQuantity('');

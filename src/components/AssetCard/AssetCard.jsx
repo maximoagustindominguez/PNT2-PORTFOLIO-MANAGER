@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CURRENCY_SYMBOL } from '../../constants';
+import { useModal } from '../../hooks/useModal';
 import styles from './AssetCard.module.css';
 
 export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurrentPrice, onResetAsset, onDeleteAsset }) => {
-  const [showModal, setShowModal] = useState(false);
+  const { isOpen: showModal, openModal: openModal, closeModal: closeModal } = useModal(false);
+  const { isOpen: showConfirmModal, openModal: openConfirmModal, closeModal: closeConfirmModal } = useModal(false);
   const [modalQuantityChange, setModalQuantityChange] = useState('0');
   const [modalPrice, setModalPrice] = useState(asset.purchasePrice.toString());
   const [editCurrentPrice, setEditCurrentPrice] = useState(false);
   const [newCurrentPrice, setNewCurrentPrice] = useState(asset.currentPrice.toString());
   const [showMenu, setShowMenu] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // 'reset' o 'delete'
 
   useEffect(() => {
@@ -94,19 +95,19 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
       onReduceQuantity(asset.id, Math.abs(quantityChange));
     }
 
-    setShowModal(false);
+    closeModal();
   };
 
   const handleModalCancel = () => {
     setModalQuantityChange('0');
     setModalPrice(asset.purchasePrice.toString());
-    setShowModal(false);
+    closeModal();
   };
 
   const handleOpenModal = () => {
     setModalQuantityChange('0');
     setModalPrice(asset.purchasePrice.toString());
-    setShowModal(true);
+    openModal();
   };
 
   const handleIncrementQuantity = () => {
@@ -143,13 +144,13 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
 
   const handleResetAsset = () => {
     setConfirmAction('reset');
-    setShowConfirmModal(true);
+    openConfirmModal();
     setShowMenu(false);
   };
 
   const handleDeleteAsset = () => {
     setConfirmAction('delete');
-    setShowConfirmModal(true);
+    openConfirmModal();
     setShowMenu(false);
   };
 
@@ -159,12 +160,12 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
     } else if (confirmAction === 'delete') {
       onDeleteAsset(asset.id);
     }
-    setShowConfirmModal(false);
+    closeConfirmModal();
     setConfirmAction(null);
   };
 
   const handleCancelConfirm = () => {
-    setShowConfirmModal(false);
+    closeConfirmModal();
     setConfirmAction(null);
   };
 
@@ -181,26 +182,6 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
     };
   }, [showMenu]);
 
-  // Deshabilitar scroll y grisar el fondo cuando el modal está abierto
-  useEffect(() => {
-    if (showModal || showConfirmModal) {
-      // Prevenir scroll del body
-      document.body.style.overflow = 'hidden';
-      // Agregar clase al body para grisar el contenido
-      document.body.classList.add('modal-open');
-    } else {
-      // Restaurar scroll
-      document.body.style.overflow = '';
-      // Remover clase
-      document.body.classList.remove('modal-open');
-    }
-
-    // Cleanup
-    return () => {
-      document.body.style.overflow = '';
-      document.body.classList.remove('modal-open');
-    };
-  }, [showModal, showConfirmModal]);
 
 
   return (

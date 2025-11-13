@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import * as XLSX from 'xlsx';
@@ -6,11 +6,12 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 import { CURRENCY_SYMBOL } from '../../constants';
+import { useModal } from '../../hooks/useModal';
 import styles from './Summary.module.css';
 
 export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) => {
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
+  const { isOpen: showDetailModal, openModal: openDetailModal, closeModal: closeDetailModal } = useModal(false);
+  const { isOpen: showExportModal, openModal: openExportModal, closeModal: closeExportModal } = useModal(false);
   const [timeframe, setTimeframe] = useState('todo'); // diario, 3dias, semanal, mensual, trimestral, semestral, anual, todo
   const chartRef = useRef(null);
 
@@ -72,21 +73,6 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
     return TYPE_COLORS[typeName] || '#6b7280';
   };
 
-  // Deshabilitar scroll y grisar el fondo cuando el modal está abierto
-  useEffect(() => {
-    if (showDetailModal || showExportModal) {
-      document.body.style.overflow = 'hidden';
-      document.body.classList.add('modal-open');
-    } else {
-      document.body.style.overflow = '';
-      document.body.classList.remove('modal-open');
-    }
-
-    return () => {
-      document.body.style.overflow = '';
-      document.body.classList.remove('modal-open');
-    };
-  }, [showDetailModal, showExportModal]);
 
   const exportToExcel = () => {
     const data = profitByType.map((item) => ({
@@ -103,7 +89,7 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Ganancia_Perdida');
     XLSX.writeFile(wb, `ganancia_perdida_${timeframe}.xlsx`);
-    setShowExportModal(false);
+    closeExportModal();
   };
 
   const exportToPDF = async () => {
@@ -166,7 +152,7 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
     }
 
     doc.save(`ganancia_perdida_${timeframe}.pdf`);
-    setShowExportModal(false);
+    closeExportModal();
   };
 
   const exportToJPG = async () => {
@@ -187,7 +173,7 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      setShowExportModal(false);
+      closeExportModal();
     } catch (error) {
       console.error('Error al exportar a JPG:', error);
     }
@@ -231,7 +217,7 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
         </div>
         <button
           type="button"
-          onClick={() => setShowDetailModal(true)}
+          onClick={openDetailModal}
           className={styles.detailButton}
         >
           Ver detalle
@@ -244,7 +230,7 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
             className={styles.modalOverlay}
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                setShowDetailModal(false);
+                closeDetailModal();
               }
             }}
           >
@@ -373,7 +359,7 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
 
               <button
                 type="button"
-                onClick={() => setShowExportModal(true)}
+                onClick={openExportModal}
                 className={styles.exportGraphButton}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -387,7 +373,7 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
 
               <button
                 type="button"
-                onClick={() => setShowDetailModal(false)}
+                onClick={closeDetailModal}
                 className={styles.modalCloseButton}
               >
                 Cerrar
@@ -403,7 +389,7 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
             className={styles.modalOverlay}
             onClick={(e) => {
               if (e.target === e.currentTarget) {
-                setShowExportModal(false);
+                closeExportModal();
               }
             }}
           >
@@ -456,7 +442,7 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
               </div>
               <button
                 type="button"
-                onClick={() => setShowExportModal(false)}
+                onClick={closeExportModal}
                 className={styles.modalCancelBtn}
               >
                 Cancelar
