@@ -12,6 +12,25 @@ body.modal-open #root {
   user-select: none;
 }
 
+/* Estilos para gráficos Recharts */
+.recharts-legend-wrapper {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.recharts-legend-item-text {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.recharts-label {
+  fill: rgba(255, 255, 255, 0.9) !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+}
+
+.recharts-tooltip-wrapper {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
 @media (max-width: 768px) {
   #root {
     padding: 1rem;

@@ -124,6 +124,7 @@ function App() {
         totalValue={totalValue}
         totalInvestment={totalInvestment}
         totalProfit={totalProfit}
+        assets={assets}
       />
       <Dashboard
         assets={assets}
