@@ -381,18 +381,7 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
                       type="number"
                       step="1"
                       value={modalQuantityChange}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === '' || value === '-') {
-                          setModalQuantityChange(value);
-                        } else {
-                          const numValue = parseFloat(value);
-                          if (!isNaN(numValue)) {
-                            const clampedValue = Math.max(-asset.quantity, numValue);
-                            setModalQuantityChange(clampedValue.toString());
-                          }
-                        }
-                      }}
+                      readOnly
                       className={styles.modalInput}
                     />
                     <button

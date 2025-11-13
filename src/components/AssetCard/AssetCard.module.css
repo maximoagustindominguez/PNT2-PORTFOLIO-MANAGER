@@ -372,6 +372,23 @@ body.modal-open .card:hover {
 .quantityInputGroup .modalInput {
   flex: 1;
   text-align: center;
+  cursor: default;
+}
+
+/* Ocultar spinners del input numérico */
+.quantityInputGroup .modalInput::-webkit-inner-spin-button,
+.quantityInputGroup .modalInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.quantityInputGroup .modalInput {
+  -moz-appearance: textfield;
+}
+
+.quantityInputGroup .modalInput:focus {
+  border-color: rgba(255, 255, 255, 0.2);
+  cursor: default;
 }
 
 .quantityButton {
