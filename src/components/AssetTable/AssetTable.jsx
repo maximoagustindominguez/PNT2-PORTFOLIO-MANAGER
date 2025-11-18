@@ -15,10 +15,13 @@ export const AssetTable = ({ assets }) => {
 
   const getTypeLabel = (type) => {
     const types = {
-      accion: 'Acción',
-      criptomoneda: 'Cripto',
-      fondo: 'Fondo',
-      bond: 'Bond',
+      stock: 'Acción',
+      accion: 'Acción', // Compatibilidad con datos antiguos
+      crypto: 'Cripto',
+      criptomoneda: 'Cripto', // Compatibilidad con datos antiguos
+      etf: 'ETF',
+      fondo: 'Fondo', // Compatibilidad con datos antiguos
+      bond: 'Bono',
     };
     return types[type] || type;
   };

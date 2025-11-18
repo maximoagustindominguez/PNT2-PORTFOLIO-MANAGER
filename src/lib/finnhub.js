@@ -203,11 +203,12 @@ export const getAssetPrice = async (symbol, type, apiKey) => {
   }
 
   // Decidir qué función usar según el tipo de activo
-  if (type === 'criptomoneda') {
+  // Tipos de Finnhub: stock, crypto, etf, bond
+  if (type === 'crypto' || type === 'criptomoneda') {
     // Las criptomonedas necesitan un formato especial
     return await getCryptoQuote(symbol, apiKey);
-  } else if (type === 'accion' || type === 'fondo') {
-    // Acciones y fondos se obtienen de la misma manera
+  } else if (type === 'stock' || type === 'accion' || type === 'etf' || type === 'fondo') {
+    // Acciones, ETFs y fondos se obtienen de la misma manera
     return await getStockQuote(symbol, apiKey);
   } else if (type === 'bond') {
     // Los bonos se intentan obtener como acciones
@@ -325,5 +326,235 @@ export const updateAssetPrices = async (assets, updatePriceCallback, apiKey) => 
     updated: updatedCount, // cuántos se actualizaron
     failed: failedCount // cuántos fallaron
   };
+};
+
+/**
+ * BUSCAR SÍMBOLOS EN FINNHUB
+ * 
+ * Esta función busca símbolos de activos en Finnhub basándose en una consulta de texto.
+ * Útil para autocompletado cuando el usuario está escribiendo un ticker.
+ * 
+ * La API de Finnhub tiene un endpoint de búsqueda que devuelve resultados que coinciden
+ * con la consulta, incluyendo acciones, criptomonedas, fondos, etc.
+ * 
+ * @param {string} query - Texto de búsqueda (ej: "AAPL", "Apple", "BTC")
+ * @param {string} apiKey - Clave de API de Finnhub
+ * @returns {Promise<Array>} Array de objetos con {symbol, description, type, displaySymbol}
+ */
+export const searchSymbols = async (query, apiKey) => {
+  if (!apiKey || !query || query.trim().length < 1) {
+    return [];
+  }
+
+  try {
+    // Endpoint de búsqueda de Finnhub
+    // Devuelve hasta 8 resultados que coinciden con la consulta
+    const response = await fetch(
+      `${FINNHUB_API_URL}/search?q=${encodeURIComponent(query.trim())}&token=${apiKey}`
+    );
+
+    if (!response.ok) {
+      // Si hay error, devolver array vacío (no es crítico para la búsqueda)
+      return [];
+    }
+
+    const data = await response.json();
+    
+    // La API devuelve un objeto con 'result' que contiene un array de resultados
+    // Cada resultado tiene: symbol, description, displaySymbol, type
+    return data.result || [];
+  } catch (error) {
+    console.error('Error al buscar símbolos:', error);
+    return [];
+  }
+};
+
+/**
+ * DETECTAR TIPO DE ACTIVO BASADO EN SÍMBOLO
+ * 
+ * Intenta determinar el tipo de activo basándose en el símbolo o resultado de búsqueda.
+ * Los tipos deben coincidir con los que maneja Finnhub: stock, crypto, etf, bond
+ * 
+ * Reglas:
+ * - Si el símbolo tiene formato "BINANCE:XXXUSDT" → crypto
+ * - Si la descripción contiene palabras clave de cripto → crypto
+ * - Si el símbolo es conocido como cripto (BTC, ETH, etc.) → crypto
+ * - Si el tipo del resultado es "ETF" o "Mutual Fund" → etf
+ * - Si el tipo es "Bond" → bond
+ * - Por defecto → stock
+ * 
+ * @param {string} symbol - Símbolo del activo
+ * @param {Object} searchResult - Resultado de búsqueda de Finnhub (opcional)
+ * @returns {string} Tipo de activo: "stock", "crypto", "etf", o "bond"
+ */
+export const detectAssetType = (symbol, searchResult = null) => {
+  // Lista de símbolos conocidos de criptomonedas
+  const cryptoSymbols = ['BTC', 'ETH', 'BNB', 'SOL', 'ADA', 'XRP', 'DOGE', 'DOT', 'MATIC', 'AVAX', 'LINK', 'UNI', 'ATOM', 'ETC', 'LTC', 'BCH', 'XLM', 'ALGO', 'VET', 'FIL', 'TRX', 'EOS', 'AAVE', 'MKR', 'COMP', 'YFI', 'SUSHI', 'SNX', 'CRV', '1INCH'];
+  
+  const upperSymbol = symbol.toUpperCase();
+  
+  // Si el símbolo tiene formato BINANCE:XXXUSDT, es criptomoneda
+  if (upperSymbol.includes('BINANCE:') || upperSymbol.endsWith('USDT')) {
+    return 'crypto';
+  }
+  
+  // Si el símbolo está en la lista de criptos conocidas
+  if (cryptoSymbols.includes(upperSymbol)) {
+    return 'crypto';
+  }
+  
+  // Si tenemos un resultado de búsqueda, usar su información
+  if (searchResult) {
+    const type = searchResult.type?.toUpperCase() || '';
+    const description = (searchResult.description || '').toUpperCase();
+    
+    // Detectar ETFs
+    if (type.includes('ETF') || type.includes('MUTUAL FUND') || type.includes('FUND') || 
+        description.includes('ETF') || description.includes('FUND')) {
+      return 'etf';
+    }
+    
+    // Detectar bonos
+    if (type.includes('BOND') || description.includes('BOND') || description.includes('TREASURY')) {
+      return 'bond';
+    }
+    
+    // Detectar criptomonedas por descripción
+    if (description.includes('CRYPTO') || description.includes('BITCOIN') || 
+        description.includes('ETHEREUM') || description.includes('DIGITAL CURRENCY')) {
+      return 'crypto';
+    }
+  }
+  
+  // Por defecto, asumir que es una acción (stock)
+  return 'stock';
+};
+
+/**
+ * OBTENER DATOS HISTÓRICOS (CANDLESTICK) DE UN ACTIVO
+ * 
+ * Esta función obtiene datos históricos de precios de un activo desde Finnhub.
+ * Los datos se devuelven en formato candlestick (velas) que incluye:
+ * - Precio de apertura (open)
+ * - Precio máximo (high)
+ * - Precio mínimo (low)
+ * - Precio de cierre (close)
+ * - Volumen
+ * - Timestamp
+ * 
+ * Temporalidades disponibles:
+ * - '1', '5', '15', '30', '60' (minutos)
+ * - 'D' (diario)
+ * - 'W' (semanal)
+ * - 'M' (mensual)
+ * 
+ * @param {string} symbol - Símbolo del activo (ej: "AAPL", "BTC")
+ * @param {string} resolution - Temporalidad ('1', '5', '15', '30', '60', 'D', 'W', 'M')
+ * @param {number} from - Timestamp de inicio (Unix timestamp en segundos)
+ * @param {number} to - Timestamp de fin (Unix timestamp en segundos)
+ * @param {string} apiKey - Clave de API de Finnhub
+ * @param {string} type - Tipo de activo ('stock', 'crypto', 'etf', 'bond')
+ * @returns {Promise<{data: Array|null, error: string|null}>} 
+ *   - data: Array de objetos con {t, o, h, l, c, v} (timestamp, open, high, low, close, volume)
+ *   - error: Mensaje de error si falló
+ */
+export const getStockCandles = async (symbol, resolution, from, to, apiKey, type = 'stock') => {
+  if (!apiKey) {
+    return { data: null, error: 'API key de Finnhub no configurada' };
+  }
+
+  try {
+    // Para criptomonedas, usar el formato BINANCE:SYMBOLUSDT
+    const finnhubSymbol = (type === 'crypto' || type === 'criptomoneda') 
+      ? `BINANCE:${symbol}USDT` 
+      : symbol;
+
+    const response = await fetch(
+      `${FINNHUB_API_URL}/stock/candle?symbol=${encodeURIComponent(finnhubSymbol)}&resolution=${resolution}&from=${from}&to=${to}&token=${apiKey}`
+    );
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return { data: null, error: 'Rate limit excedido. Por favor intenta más tarde.' };
+      }
+      return { data: null, error: `Error al obtener datos: ${response.status}` };
+    }
+
+    const result = await response.json();
+
+    // Finnhub devuelve {s: 'ok', t: [...], o: [...], h: [...], l: [...], c: [...], v: [...]}
+    // donde 's' es el status ('ok' o 'no_data')
+    if (result.s === 'no_data' || !result.t || result.t.length === 0) {
+      return { data: null, error: 'No hay datos disponibles para este período' };
+    }
+
+    // Convertir los arrays en objetos más fáciles de usar
+    const data = result.t.map((timestamp, index) => ({
+      timestamp: timestamp * 1000, // Convertir a milisegundos para JavaScript Date
+      open: result.o[index],
+      high: result.h[index],
+      low: result.l[index],
+      close: result.c[index],
+      volume: result.v[index],
+    }));
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error al obtener datos históricos:', error);
+    return { data: null, error: error.message || 'Error al obtener datos históricos' };
+  }
+};
+
+/**
+ * CALCULAR TIMESTAMPS PARA UNA TEMPORALIDAD
+ * 
+ * Calcula los timestamps 'from' y 'to' basándose en la temporalidad seleccionada.
+ * 
+ * @param {string} timeframe - Temporalidad ('1D', '1W', '1M', '3M', '6M', '1Y', 'ALL')
+ * @returns {{from: number, to: number, resolution: string}}
+ *   - from: Timestamp de inicio (Unix en segundos)
+ *   - to: Timestamp de fin (Unix en segundos)
+ *   - resolution: Resolución para Finnhub ('D', 'W', 'M')
+ */
+export const getTimeframeParams = (timeframe) => {
+  const now = Math.floor(Date.now() / 1000); // Timestamp actual en segundos
+  let from;
+  let resolution = 'D'; // Por defecto, diario
+
+  switch (timeframe) {
+    case '1D':
+      from = now - (1 * 24 * 60 * 60); // 1 día atrás
+      resolution = '60'; // 1 hora para 1 día
+      break;
+    case '1W':
+      from = now - (7 * 24 * 60 * 60); // 7 días atrás
+      resolution = 'D'; // Diario para 1 semana
+      break;
+    case '1M':
+      from = now - (30 * 24 * 60 * 60); // 30 días atrás
+      resolution = 'D'; // Diario
+      break;
+    case '3M':
+      from = now - (90 * 24 * 60 * 60); // 90 días atrás
+      resolution = 'D'; // Diario
+      break;
+    case '6M':
+      from = now - (180 * 24 * 60 * 60); // 180 días atrás
+      resolution = 'D'; // Diario
+      break;
+    case '1Y':
+      from = now - (365 * 24 * 60 * 60); // 365 días atrás
+      resolution = 'W'; // Semanal para 1 año
+      break;
+    case 'ALL':
+      from = now - (5 * 365 * 24 * 60 * 60); // 5 años atrás (máximo razonable)
+      resolution = 'M'; // Mensual para todo
+      break;
+    default:
+      from = now - (30 * 24 * 60 * 60); // Por defecto, 30 días
+      resolution = 'D';
+  }
+
+  return { from, to: now, resolution };
 };
 

@@ -22,10 +22,13 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
 
   const getTypeLabel = (type) => {
     const types = {
-      accion: 'Acciones',
-      criptomoneda: 'Cripto',
-      fondo: 'Fondos',
-      bond: 'Bonos',
+      stock: 'Acción',
+      accion: 'Acción', // Compatibilidad con datos antiguos
+      crypto: 'Cripto',
+      criptomoneda: 'Cripto', // Compatibilidad con datos antiguos
+      etf: 'ETF',
+      fondo: 'Fondo', // Compatibilidad con datos antiguos
+      bond: 'Bono',
     };
     return types[type] || type;
   };
@@ -33,9 +36,12 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
   // Agrupar ganancias/pérdidas por tipo de activo
   const profitByType = useMemo(() => {
     const grouped = {
-      accion: { profit: 0, label: 'Acciones' },
-      criptomoneda: { profit: 0, label: 'Cripto' },
-      fondo: { profit: 0, label: 'Fondos' },
+      stock: { profit: 0, label: 'Acciones' },
+      accion: { profit: 0, label: 'Acciones' }, // Compatibilidad
+      crypto: { profit: 0, label: 'Cripto' },
+      criptomoneda: { profit: 0, label: 'Cripto' }, // Compatibilidad
+      etf: { profit: 0, label: 'ETF' },
+      fondo: { profit: 0, label: 'Fondos' }, // Compatibilidad
       bond: { profit: 0, label: 'Bonos' },
     };
 
@@ -44,8 +50,17 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
       const totalInvestment = asset.quantity * asset.purchasePrice;
       const profit = totalValue - totalInvestment;
 
-      if (grouped[asset.type]) {
-        grouped[asset.type].profit += profit;
+      // Normalizar tipos antiguos a nuevos
+      let normalizedType = asset.type;
+      if (asset.type === 'accion') normalizedType = 'stock';
+      else if (asset.type === 'criptomoneda') normalizedType = 'crypto';
+      else if (asset.type === 'fondo') normalizedType = 'etf';
+
+      if (grouped[normalizedType] || grouped[asset.type]) {
+        const targetGroup = grouped[normalizedType] || grouped[asset.type];
+        if (targetGroup) {
+          targetGroup.profit += profit;
+        }
       }
     });
 

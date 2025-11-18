@@ -174,11 +174,15 @@ export const useAssetsStore = create((set) => ({
    * Crea un nuevo activo y lo agrega al array.
    * Genera automáticamente un nuevo ID único (el máximo ID + 1).
    * 
-   * @param {string} type - Tipo de activo ("accion", "criptomoneda", "fondo", "bond")
+   * @param {string} type - Tipo de activo ("stock", "crypto", "etf", "bond")
    * @param {string} symbol - Símbolo de cotización (ej: "AAPL", "BTC")
-   * @param {number} quantity - Cantidad inicial (puede ser 0)
+   * @param {number} quantity - Cantidad total inicial
+   * @param {number} purchasePrice - Precio promedio de compra (opcional, por defecto 0)
+   * @param {number} currentPrice - Precio actual del mercado (opcional, por defecto 0)
+   * @param {string} name - Nombre del activo (opcional, por defecto el símbolo)
+   * @param {Array} brokers - Array de objetos {broker, quantity} (opcional)
    */
-  addNewAsset: (type, symbol, quantity) => {
+  addNewAsset: (type, symbol, quantity, purchasePrice = 0, currentPrice = 0, name = null, brokers = null) => {
     set((state) => {
       // Calcular el siguiente ID disponible
       // Si hay activos, encontrar el máximo ID y sumar 1
@@ -191,12 +195,13 @@ export const useAssetsStore = create((set) => ({
       // Crear el nuevo objeto de activo
       const newAsset = {
         id: newId,
-        name: symbol, // Por ahora, el nombre es igual al símbolo
+        name: name || symbol, // Usar el nombre proporcionado o el símbolo como respaldo
         symbol: symbol,
         type: type,
         quantity: parseFloat(quantity) || 0, // Convertir a número, o 0 si falla
-        purchasePrice: 0, // Se establecerá cuando el usuario agregue cantidad
-        currentPrice: 0, // Se actualizará automáticamente desde Finnhub
+        purchasePrice: parseFloat(purchasePrice) || 0, // Precio promedio de compra
+        currentPrice: parseFloat(currentPrice) || 0, // Precio actual del mercado
+        brokers: brokers || [], // Información de brokers y cantidades distribuidas
       };
       
       // Agregar el nuevo activo al final del array usando spread operator

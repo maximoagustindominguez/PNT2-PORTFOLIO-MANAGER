@@ -1,16 +1,27 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { CURRENCY_SYMBOL } from '../../constants';
 import { useModal } from '../../hooks/useModal';
+import { getStockCandles, getTimeframeParams } from '../../lib/finnhub';
 import styles from './AssetCard.module.css';
 
 export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset }) => {
   const { isOpen: showModal, openModal: openModal, closeModal: closeModal } = useModal(false);
   const { isOpen: showConfirmModal, openModal: openConfirmModal, closeModal: closeConfirmModal } = useModal(false);
+  const { isOpen: showDetailModal, openModal: openDetailModal, closeModal: closeDetailModal } = useModal(false);
+  const { isOpen: showChartModal, openModal: openChartModal, closeModal: closeChartModal } = useModal(false);
   const [modalQuantityChange, setModalQuantityChange] = useState('0');
   const [modalPrice, setModalPrice] = useState(asset.purchasePrice.toString());
   const [showMenu, setShowMenu] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // 'reset' o 'delete'
+  
+  // Estados para el gráfico
+  const [chartTimeframe, setChartTimeframe] = useState('1M');
+  const [chartData, setChartData] = useState([]);
+  const [isLoadingChart, setIsLoadingChart] = useState(false);
+  const [chartError, setChartError] = useState(null);
+  const apiKey = import.meta.env.VITE_FINNHUB_API_KEY;
 
   const totalValue = asset.quantity * asset.currentPrice;
   const totalInvestment = asset.quantity * asset.purchasePrice;
@@ -20,13 +31,68 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
 
   const getTypeLabel = (type) => {
     const types = {
-      accion: 'Acción',
-      criptomoneda: 'Cripto',
-      fondo: 'Fondo',
-      bond: 'Bond',
+      stock: 'Acción',
+      accion: 'Acción', // Compatibilidad con datos antiguos
+      crypto: 'Cripto',
+      criptomoneda: 'Cripto', // Compatibilidad con datos antiguos
+      etf: 'ETF',
+      fondo: 'Fondo', // Compatibilidad con datos antiguos
+      bond: 'Bono',
     };
     return types[type] || type;
   };
+
+  // Obtener step según el tipo de asset (enteros para stocks/bonds/etf, decimales para crypto)
+  const getQuantityStep = () => {
+    return asset.type === 'crypto' || asset.type === 'criptomoneda' ? '0.00000001' : '1';
+  };
+
+  // Cargar datos del gráfico cuando cambia la temporalidad o se abre el modal
+  useEffect(() => {
+    if (!showChartModal || !apiKey || !asset.symbol) return;
+
+    const loadChartData = async () => {
+      setIsLoadingChart(true);
+      setChartError(null);
+
+      try {
+        const { from, to, resolution } = getTimeframeParams(chartTimeframe);
+        const result = await getStockCandles(
+          asset.symbol,
+          resolution,
+          from,
+          to,
+          apiKey,
+          asset.type
+        );
+
+        if (result.error) {
+          setChartError(result.error);
+          setChartData([]);
+        } else if (result.data) {
+          // Formatear datos para el gráfico
+          const formattedData = result.data.map(item => ({
+            date: new Date(item.timestamp).toLocaleDateString('es-AR', {
+              month: 'short',
+              day: 'numeric',
+              ...(chartTimeframe === '1Y' || chartTimeframe === 'ALL' ? { year: 'numeric' } : {})
+            }),
+            value: item.close, // Usar precio de cierre para el gráfico de línea
+            fullDate: new Date(item.timestamp),
+          }));
+          setChartData(formattedData);
+        }
+      } catch (error) {
+        console.error('Error al cargar datos del gráfico:', error);
+        setChartError('Error al cargar los datos del gráfico');
+        setChartData([]);
+      } finally {
+        setIsLoadingChart(false);
+      }
+    };
+
+    loadChartData();
+  }, [showChartModal, chartTimeframe, asset.symbol, asset.type, apiKey]);
 
   const calculateNewAveragePrice = (quantityChange, purchasePrice) => {
     const currentQuantity = asset.quantity;
@@ -104,12 +170,15 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
 
   const handleIncrementQuantity = () => {
     const current = parseFloat(modalQuantityChange) || 0;
-    setModalQuantityChange((current + 1).toString());
+    const step = parseFloat(getQuantityStep());
+    const newValue = current + step;
+    setModalQuantityChange(newValue.toString());
   };
 
   const handleDecrementQuantity = () => {
     const current = parseFloat(modalQuantityChange) || 0;
-    const newValue = Math.max(-asset.quantity, current - 1);
+    const step = parseFloat(getQuantityStep());
+    const newValue = Math.max(-asset.quantity, current - step);
     setModalQuantityChange(newValue.toString());
   };
 
@@ -262,11 +331,27 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
       <div className={styles.actions}>
         <button
           type="button"
-          className={styles.actionButton}
-          onClick={handleOpenModal}
+          className={`${styles.actionButton} ${styles.fullWidthButton}`}
+          onClick={openChartModal}
         >
-          Modificar cantidad del activo
+          Ver gráfico
         </button>
+        <div className={styles.actionsRow}>
+          <button
+            type="button"
+            className={styles.actionButton}
+            onClick={openDetailModal}
+          >
+            Ver detalle
+          </button>
+          <button
+            type="button"
+            className={styles.actionButton}
+            onClick={handleOpenModal}
+          >
+            Modificar cantidad del activo
+          </button>
+        </div>
       </div>
 
       <div className={styles.cardActions}>
@@ -332,7 +417,7 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
                     </button>
                     <input
                       type="number"
-                      step="1"
+                      step={getQuantityStep()}
                       value={modalQuantityChange}
                       readOnly
                       className={styles.modalInput}
@@ -434,6 +519,307 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
                   className={`${styles.modalAcceptBtn} ${confirmAction === 'delete' ? styles.deleteBtn : ''}`}
                 >
                   {confirmAction === 'reset' ? 'Resetear' : 'Eliminar'}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {showDetailModal &&
+        createPortal(
+          <div
+            className={styles.modalOverlay}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeDetailModal();
+              }
+            }}
+          >
+            <div
+              className={`${styles.modalContent} ${styles.detailModalContent}`}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>Detalle del Activo</h3>
+                <button
+                  type="button"
+                  onClick={closeDetailModal}
+                  className={styles.closeButton}
+                  aria-label="Cerrar"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className={styles.detailContent}>
+                {/* Información general del activo */}
+                <div className={styles.detailSection}>
+                  <h4 className={styles.detailSectionTitle}>Información General</h4>
+                  <div className={styles.detailGrid}>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Nombre:</span>
+                      <span className={styles.detailValue}>{asset.name}</span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Símbolo:</span>
+                      <span className={styles.detailValue}>{asset.symbol}</span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Tipo:</span>
+                      <span className={styles.detailValue}>{getTypeLabel(asset.type)}</span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Cantidad Total:</span>
+                      <span className={styles.detailValue}>
+                        {asset.quantity.toLocaleString('es-AR', {
+                          minimumFractionDigits: asset.type === 'crypto' || asset.type === 'criptomoneda' ? 8 : 0,
+                          maximumFractionDigits: asset.type === 'crypto' || asset.type === 'criptomoneda' ? 8 : 2
+                        })}
+                      </span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>PPC Promedio:</span>
+                      <span className={styles.detailValue}>
+                        {CURRENCY_SYMBOL}
+                        {asset.purchasePrice.toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Precio Actual:</span>
+                      <span className={styles.detailValue}>
+                        {CURRENCY_SYMBOL}
+                        {asset.currentPrice.toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desglose por brokers */}
+                {asset.brokers && asset.brokers.length > 0 ? (
+                  <div className={styles.detailSection}>
+                    <h4 className={styles.detailSectionTitle}>Desglose por Broker</h4>
+                    <div className={styles.brokersTable}>
+                      <div className={styles.brokersTableHeader}>
+                        <div className={styles.brokerTableCell}>Broker</div>
+                        <div className={styles.brokerTableCell}>Cantidad</div>
+                        <div className={styles.brokerTableCell}>PPC</div>
+                        <div className={styles.brokerTableCell}>Valor</div>
+                      </div>
+                      {asset.brokers.map((broker, index) => {
+                        const brokerValue = broker.quantity * broker.purchasePrice;
+                        return (
+                          <div key={index} className={styles.brokersTableRow}>
+                            <div className={styles.brokerTableCell}>{broker.broker}</div>
+                            <div className={styles.brokerTableCell}>
+                              {broker.quantity.toLocaleString('es-AR', {
+                                minimumFractionDigits: asset.type === 'crypto' || asset.type === 'criptomoneda' ? 8 : 0,
+                                maximumFractionDigits: asset.type === 'crypto' || asset.type === 'criptomoneda' ? 8 : 2
+                              })}
+                            </div>
+                            <div className={styles.brokerTableCell}>
+                              {CURRENCY_SYMBOL}
+                              {broker.purchasePrice.toLocaleString('es-AR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                            </div>
+                            <div className={styles.brokerTableCell}>
+                              {CURRENCY_SYMBOL}
+                              {brokerValue.toLocaleString('es-AR', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.detailSection}>
+                    <p className={styles.noBrokersMessage}>
+                      No hay información de brokers disponible para este activo.
+                    </p>
+                  </div>
+                )}
+
+                {/* Resumen de valores */}
+                <div className={styles.detailSection}>
+                  <h4 className={styles.detailSectionTitle}>Resumen</h4>
+                  <div className={styles.detailGrid}>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Valor Total:</span>
+                      <span className={`${styles.detailValue} ${styles.totalValueDetail}`}>
+                        {CURRENCY_SYMBOL}
+                        {totalValue.toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>Inversión Total:</span>
+                      <span className={styles.detailValue}>
+                        {CURRENCY_SYMBOL}
+                        {totalInvestment.toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                      </span>
+                    </div>
+                    <div className={styles.detailItem}>
+                      <span className={styles.detailLabel}>{isProfit ? 'Ganancia' : 'Pérdida'}:</span>
+                      <span className={`${styles.detailValue} ${isProfit ? styles.profitDetail : styles.lossDetail}`}>
+                        {isProfit ? '+' : ''}
+                        {CURRENCY_SYMBOL}
+                        {profit.toLocaleString('es-AR', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })}
+                        {' '}({isProfit ? '+' : ''}{profitPercentage}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className={styles.modalButtons}>
+                <button
+                  type="button"
+                  onClick={closeDetailModal}
+                  className={styles.modalAcceptBtn}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Modal de gráfico */}
+      {showChartModal &&
+        createPortal(
+          <div
+            className={styles.modalOverlay}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeChartModal();
+              }
+            }}
+          >
+            <div
+              className={`${styles.modalContent} ${styles.chartModalContent}`}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>
+                  Gráfico de {asset.name} ({asset.symbol})
+                </h3>
+                <button
+                  type="button"
+                  onClick={closeChartModal}
+                  className={styles.closeButton}
+                  aria-label="Cerrar"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Selector de temporalidad */}
+              <div className={styles.timeframeSelector}>
+                {['1D', '1W', '1M', '3M', '6M', '1Y', 'ALL'].map((tf) => (
+                  <button
+                    key={tf}
+                    type="button"
+                    className={`${styles.timeframeButton} ${chartTimeframe === tf ? styles.timeframeButtonActive : ''}`}
+                    onClick={() => setChartTimeframe(tf)}
+                  >
+                    {tf === '1D' ? '1 Día' :
+                     tf === '1W' ? '1 Semana' :
+                     tf === '1M' ? '1 Mes' :
+                     tf === '3M' ? '3 Meses' :
+                     tf === '6M' ? '6 Meses' :
+                     tf === '1Y' ? '1 Año' :
+                     'Todo'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Gráfico */}
+              <div className={styles.chartContainer}>
+                {isLoadingChart ? (
+                  <div className={styles.chartLoading}>
+                    Cargando datos del gráfico...
+                  </div>
+                ) : chartError ? (
+                  <div className={styles.chartError}>
+                    {chartError}
+                  </div>
+                ) : chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="rgba(255, 255, 255, 0.6)"
+                        style={{ fontSize: '0.75rem' }}
+                      />
+                      <YAxis 
+                        stroke="rgba(255, 255, 255, 0.6)"
+                        style={{ fontSize: '0.75rem' }}
+                        tickFormatter={(value) => `${CURRENCY_SYMBOL}${value.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#2a2a2a',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '6px',
+                          color: 'rgba(255, 255, 255, 0.9)',
+                        }}
+                        formatter={(value) => [
+                          `${CURRENCY_SYMBOL}${value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                          'Precio'
+                        ]}
+                        labelFormatter={(label) => `Fecha: ${label}`}
+                      />
+                      <Legend 
+                        wrapperStyle={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="value" 
+                        stroke="#646cff" 
+                        strokeWidth={2}
+                        dot={false}
+                        activeDot={{ r: 6, fill: '#646cff' }}
+                        name="Precio de Cierre"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className={styles.chartError}>
+                    No hay datos disponibles para mostrar
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.modalButtons}>
+                <button
+                  type="button"
+                  onClick={closeChartModal}
+                  className={styles.modalAcceptBtn}
+                >
+                  Cerrar
                 </button>
               </div>
             </div>
