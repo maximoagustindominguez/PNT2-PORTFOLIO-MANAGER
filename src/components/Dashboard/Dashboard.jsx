@@ -188,7 +188,7 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
   };
 
   // Manejar envío del formulario
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!selectedSymbol || totalQuantity <= 0) return;
@@ -207,9 +207,17 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
     // Calcular el PPC promedio ponderado de todos los brokers
     const averagePPC = calculateAveragePPC();
     
-    // Guardar el activo con la información de brokers y el PPC promedio
-    onAddNewAsset(selectedAssetType, selectedSymbol, totalQuantity, averagePPC, currentPrice, assetName, validBrokers);
-    handleCloseModal();
+    try {
+      // Guardar el activo con la información de brokers y el PPC promedio
+      // Ahora es asíncrono, así que esperamos a que termine
+      await onAddNewAsset(selectedAssetType, selectedSymbol, totalQuantity, averagePPC, currentPrice, assetName, validBrokers);
+      // Solo cerrar el modal si se guardó correctamente
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error al agregar activo:', error);
+      // Mostrar mensaje de error al usuario (puedes agregar un toast o alert aquí)
+      alert('Error al agregar el activo. Por favor, intenta nuevamente.');
+    }
   };
 
   return (

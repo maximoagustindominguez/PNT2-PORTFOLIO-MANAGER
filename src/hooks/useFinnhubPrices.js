@@ -41,10 +41,12 @@ const MAX_CONSECUTIVE_ERRORS = 3; // Si hay 3 errores seguidos, pausar actualiza
  */
 export const useFinnhubPrices = (enabled = true) => {
   // ============================================
-  // OBTENER FUNCIÓN DEL STORE
+  // OBTENER FUNCIONES DEL STORE
   // ============================================
   // Esta función actualiza el precio de un activo en el store
   const updateCurrentPrice = useAssetsStore((state) => state.updateCurrentPrice);
+  // Esta función guarda los activos en localStorage
+  const saveAssets = useAssetsStore((state) => state.saveAssets);
   
   // ============================================
   // REFS PARA GUARDAR ESTADO PERSISTENTE
@@ -179,6 +181,8 @@ export const useFinnhubPrices = (enabled = true) => {
         } else if (result.success) {
           // Si la actualización fue exitosa, resetear contador de errores
           consecutiveErrorsRef.current = 0;
+          // Guardar en localStorage después de actualizar precios
+          saveAssets();
           // Si no se actualizaron todos, mostrar mensaje informativo
           if (result.updated < assetsToUpdate.length) {
             console.log(`✅ Actualizados ${result.updated}/${assetsToUpdate.length} precios.`);

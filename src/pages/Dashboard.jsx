@@ -4,6 +4,7 @@ import { Summary } from '../components/Summary/Summary';
 import { Dashboard as DashboardComponent } from '../components/Dashboard/Dashboard';
 import { useAuth } from '../hooks/useAuth';
 import { useFinnhubPrices } from '../hooks/useFinnhubPrices';
+import { useAssetsStore } from '../store/assetsStore';
 import styles from './Dashboard.module.css';
 
 export function Dashboard() {
@@ -19,6 +20,9 @@ export function Dashboard() {
     totalProfit,
   } = useAssets();
 
+  // Obtener estado de carga desde el store
+  const isLoading = useAssetsStore((state) => state.isLoading);
+
   const { logOut } = useAuth();
 
   // Actualizar precios automáticamente cada 2 minutos usando Finnhub
@@ -27,20 +31,28 @@ export function Dashboard() {
   return (
     <>
       <Header onLogout={logOut} />
-      <Summary
-        totalValue={totalValue}
-        totalInvestment={totalInvestment}
-        totalProfit={totalProfit}
-        assets={assets}
-      />
-      <DashboardComponent
-        assets={assets}
-        onAddQuantity={addAssetQuantity}
-        onReduceQuantity={reduceAssetQuantity}
-        onResetAsset={resetAsset}
-        onDeleteAsset={deleteAsset}
-        onAddNewAsset={addNewAsset}
-      />
+      {isLoading ? (
+        <div className={styles.loadingContainer}>
+          <p>Cargando activos...</p>
+        </div>
+      ) : (
+        <>
+          <Summary
+            totalValue={totalValue}
+            totalInvestment={totalInvestment}
+            totalProfit={totalProfit}
+            assets={assets}
+          />
+          <DashboardComponent
+            assets={assets}
+            onAddQuantity={addAssetQuantity}
+            onReduceQuantity={reduceAssetQuantity}
+            onResetAsset={resetAsset}
+            onDeleteAsset={deleteAsset}
+            onAddNewAsset={addNewAsset}
+          />
+        </>
+      )}
     </>
   );
 }

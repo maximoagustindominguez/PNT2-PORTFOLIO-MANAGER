@@ -4,16 +4,21 @@
  * Este archivo crea un store para manejar todos los activos financieros del usuario.
  * Un "activo" es cualquier inversión: acciones, criptomonedas, fondos, bonos, etc.
  * 
+ * IMPORTANTE: Los activos se guardan en Supabase (base de datos en la nube).
+ * Cada usuario tiene sus propios activos asociados a su ID de usuario.
+ * 
  * ¿Qué información tiene cada activo?
- * - id: Identificador único
+ * - id: Identificador único (generado por Supabase)
  * - name: Nombre del activo (ej: "Apple Inc.")
  * - symbol: Símbolo de cotización (ej: "AAPL")
- * - type: Tipo de activo ("accion", "criptomoneda", "fondo", "bond")
+ * - type: Tipo de activo ("stock", "crypto", "etf", "bond")
  * - quantity: Cantidad que posee el usuario
  * - purchasePrice: Precio promedio de compra (PPC)
  * - currentPrice: Precio actual del mercado (se actualiza automáticamente)
+ * - brokers: Array de objetos {broker, quantity, purchasePrice}
  * 
  * ¿Qué operaciones podemos hacer?
+ * - Cargar activos desde Supabase cuando el usuario inicia sesión
  * - Agregar cantidad a un activo (comprar más)
  * - Reducir cantidad de un activo (vender)
  * - Actualizar precio actual (automático desde Finnhub)
@@ -24,18 +29,138 @@
  */
 
 import { create } from 'zustand';
-// Importar datos iniciales desde un archivo JSON (datos de prueba)
+// Importar servicio de Supabase para operaciones de base de datos
+import {
+  loadAssetsFromSupabase,
+  saveAssetToSupabase,
+  updateAssetInSupabase,
+  deleteAssetFromSupabase,
+  syncAllAssetsToSupabase,
+} from '../lib/assetsService';
+// Importar datos iniciales desde un archivo JSON (solo como fallback si no hay usuario)
 import assetsData from '../mock-data/assets.json';
 
 /**
  * Store de activos con todas las funciones para gestionarlos
+ * 
+ * IMPORTANTE: Los activos se guardan automáticamente en Supabase
+ * cada vez que se modifica el array. Esto permite que los datos persistan
+ * en la nube y estén disponibles desde cualquier dispositivo.
  */
-export const useAssetsStore = create((set) => ({
-  // Estado inicial: array de activos cargado desde el archivo JSON
-  assets: assetsData,
+export const useAssetsStore = create((set, get) => ({
+  // Estado inicial: array vacío (se cargará desde Supabase cuando el usuario inicie sesión)
+  assets: [],
   
-  // Función para establecer todos los activos de una vez (útil para cargar desde servidor)
-  setAssets: (assets) => set({ assets }),
+  // Estado de carga: indica si se están cargando los activos desde Supabase
+  isLoading: false,
+  
+  // ID del usuario actual (necesario para filtrar activos en Supabase)
+  currentUserId: null,
+  
+  /**
+   * CARGAR ACTIVOS DESDE SUPABASE
+   * 
+   * Esta función carga todos los activos del usuario desde Supabase.
+   * Se debe llamar cuando el usuario inicia sesión.
+   * 
+   * @param {string} userId - ID del usuario (obtenido de Supabase Auth)
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  loadAssets: async (userId) => {
+    if (!userId) {
+      console.warn('⚠️ No se proporcionó userId para cargar activos');
+      set({ assets: [], currentUserId: null });
+      return { success: false, error: 'ID de usuario no proporcionado' };
+    }
+
+    set({ isLoading: true, currentUserId: userId });
+
+    try {
+      const result = await loadAssetsFromSupabase(userId);
+      
+      if (result.error) {
+        console.error('Error al cargar activos:', result.error);
+        set({ assets: [], isLoading: false });
+        return { success: false, error: result.error };
+      }
+
+      // Si hay datos, usarlos. Si no, usar array vacío
+      const assets = result.data || [];
+      set({ assets, isLoading: false });
+      
+      console.log(`✅ Cargados ${assets.length} activos desde Supabase`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error inesperado al cargar activos:', error);
+      set({ assets: [], isLoading: false });
+      return { success: false, error: error.message || 'Error al cargar activos' };
+    }
+  },
+  
+  /**
+   * ESTABLECER ACTIVOS MANUALMENTE
+   * 
+   * Función para establecer todos los activos de una vez.
+   * Útil para sincronización o migración de datos.
+   * 
+   * @param {Array} assets - Array de activos a establecer
+   * @param {boolean} syncToSupabase - Si true, sincroniza con Supabase
+   */
+  setAssets: async (assets, syncToSupabase = false) => {
+    set({ assets });
+    
+    // Si se solicita sincronización y hay un usuario logueado, guardar en Supabase
+    if (syncToSupabase) {
+      const state = get();
+      if (state.currentUserId) {
+        try {
+          const result = await syncAllAssetsToSupabase(assets, state.currentUserId);
+          if (!result.success) {
+            console.error('Error al sincronizar activos:', result.error);
+          }
+        } catch (error) {
+          console.error('Error inesperado al sincronizar activos:', error);
+        }
+      }
+    }
+  },
+  
+  /**
+   * LIMPIAR ACTIVOS
+   * 
+   * Limpia todos los activos del store. Se usa cuando el usuario cierra sesión.
+   */
+  clearAssets: () => {
+    set({ assets: [], currentUserId: null, isLoading: false });
+  },
+  
+  /**
+   * GUARDAR ACTIVOS EN SUPABASE
+   * 
+   * Función pública para guardar manualmente los activos en Supabase.
+   * Útil para guardar después de actualizaciones automáticas de precios.
+   * 
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  saveAssets: async () => {
+    const state = get();
+    if (!state.currentUserId) {
+      console.warn('⚠️ No hay usuario logueado, no se pueden guardar activos');
+      return { success: false, error: 'No hay usuario logueado' };
+    }
+
+    try {
+      const result = await syncAllAssetsToSupabase(state.assets, state.currentUserId);
+      if (!result.success) {
+        console.error('Error al guardar activos:', result.error);
+        return { success: false, error: result.error };
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Error inesperado al guardar activos:', error);
+      return { success: false, error: error.message || 'Error al guardar activos' };
+    }
+  },
   
   /**
    * AGREGAR CANTIDAD A UN ACTIVO
@@ -52,48 +177,76 @@ export const useAssetsStore = create((set) => ({
    * @param {number} quantityToAdd - Cantidad a agregar (debe ser > 0)
    * @param {number} purchasePrice - Precio al que se compró esta nueva cantidad
    */
-  addAssetQuantity: (assetId, quantityToAdd, purchasePrice) => {
+  addAssetQuantity: async (assetId, quantityToAdd, purchasePrice) => {
     // Validación: no permitir cantidades o precios negativos o cero
     if (quantityToAdd <= 0 || purchasePrice <= 0) return;
     
-    // set() es la función de Zustand para actualizar el estado
-    // Recibe una función que recibe el estado actual y devuelve el nuevo estado
+    const state = get();
+    if (!state.currentUserId) {
+      console.warn('⚠️ No hay usuario logueado, no se puede actualizar activo');
+      return;
+    }
+    
+    // Calcular los nuevos valores
+    const asset = state.assets.find((a) => a.id === assetId);
+    if (!asset) {
+      console.error('Activo no encontrado:', assetId);
+      return;
+    }
+
+    const currentQuantity = asset.quantity;
+    const currentPurchasePrice = asset.purchasePrice;
+    
+    let newQuantity, newPurchasePrice;
+    
+    // Si la cantidad actual es 0, simplemente establecemos los nuevos valores
+    if (currentQuantity === 0) {
+      newQuantity = quantityToAdd;
+      newPurchasePrice = purchasePrice;
+    } else {
+      // Calcular el nuevo precio promedio de compra (PPC)
+      const totalCurrentValue = currentQuantity * currentPurchasePrice;
+      const newQuantityValue = quantityToAdd * purchasePrice;
+      const newTotalQuantity = currentQuantity + quantityToAdd;
+      newPurchasePrice = (totalCurrentValue + newQuantityValue) / newTotalQuantity;
+      newQuantity = newTotalQuantity;
+    }
+    
+    // Actualizar en el estado local primero (optimistic update)
     set((state) => ({
-      // map() recorre todos los activos y devuelve un nuevo array
-      assets: state.assets.map((asset) => {
-        // Si encontramos el activo que queremos modificar
-        if (asset.id === assetId) {
-          const currentQuantity = asset.quantity;
-          const currentPurchasePrice = asset.purchasePrice;
-          
-          // Si la cantidad actual es 0, simplemente establecemos los nuevos valores
-          // (no hay que calcular promedio porque no hay compras previas)
-          if (currentQuantity === 0) {
-            return {
-              ...asset, // Mantener todas las propiedades del activo
-              quantity: quantityToAdd,
-              purchasePrice: purchasePrice,
-            };
-          }
-          
-          // Calcular el nuevo precio promedio de compra (PPC)
-          // Fórmula: (cantidad_actual * PPC_actual + cantidad_nueva * precio_nuevo) / cantidad_total
-          const totalCurrentValue = currentQuantity * currentPurchasePrice;
-          const newQuantityValue = quantityToAdd * purchasePrice;
-          const newTotalQuantity = currentQuantity + quantityToAdd;
-          const newAveragePrice = (totalCurrentValue + newQuantityValue) / newTotalQuantity;
-          
-          // Devolver el activo actualizado con la nueva cantidad y PPC
-          return {
-            ...asset,
-            quantity: newTotalQuantity,
-            purchasePrice: newAveragePrice,
-          };
-        }
-        // Si no es el activo que buscamos, devolverlo sin cambios
-        return asset;
-      }),
+      assets: state.assets.map((a) =>
+        a.id === assetId
+          ? { ...a, quantity: newQuantity, purchasePrice: newPurchasePrice }
+          : a
+      ),
     }));
+    
+    // Guardar en Supabase
+    try {
+      const result = await updateAssetInSupabase(
+        assetId,
+        { quantity: newQuantity, purchasePrice: newPurchasePrice },
+        state.currentUserId
+      );
+      
+      if (result.error) {
+        console.error('Error al actualizar activo en Supabase:', result.error);
+        // Revertir el cambio si falló
+        set((state) => ({
+          assets: state.assets.map((a) =>
+            a.id === assetId ? asset : a
+          ),
+        }));
+      }
+    } catch (error) {
+      console.error('Error inesperado al actualizar activo:', error);
+      // Revertir el cambio si falló
+      set((state) => ({
+        assets: state.assets.map((a) =>
+          a.id === assetId ? asset : a
+        ),
+      }));
+    }
   },
   
   /**
@@ -106,17 +259,55 @@ export const useAssetsStore = create((set) => ({
    * @param {string} assetId - ID del activo a modificar
    * @param {number} quantityToReduce - Cantidad a reducir (debe ser > 0)
    */
-  reduceAssetQuantity: (assetId, quantityToReduce) => {
+  reduceAssetQuantity: async (assetId, quantityToReduce) => {
+    const state = get();
+    if (!state.currentUserId) {
+      console.warn('⚠️ No hay usuario logueado, no se puede actualizar activo');
+      return;
+    }
+    
+    const asset = state.assets.find((a) => a.id === assetId);
+    if (!asset) {
+      console.error('Activo no encontrado:', assetId);
+      return;
+    }
+    
+    // Calcular nueva cantidad
+    const newQuantity = Math.max(0, asset.quantity - quantityToReduce);
+    
+    // Actualizar en el estado local primero (optimistic update)
     set((state) => ({
-      assets: state.assets.map((asset) => {
-        if (asset.id === assetId) {
-          // Math.max(0, ...) asegura que la cantidad nunca sea negativa
-          const newQuantity = Math.max(0, asset.quantity - quantityToReduce);
-          return { ...asset, quantity: newQuantity };
-        }
-        return asset;
-      }),
+      assets: state.assets.map((a) =>
+        a.id === assetId ? { ...a, quantity: newQuantity } : a
+      ),
     }));
+    
+    // Guardar en Supabase
+    try {
+      const result = await updateAssetInSupabase(
+        assetId,
+        { quantity: newQuantity },
+        state.currentUserId
+      );
+      
+      if (result.error) {
+        console.error('Error al actualizar activo en Supabase:', result.error);
+        // Revertir el cambio si falló
+        set((state) => ({
+          assets: state.assets.map((a) =>
+            a.id === assetId ? asset : a
+          ),
+        }));
+      }
+    } catch (error) {
+      console.error('Error inesperado al actualizar activo:', error);
+      // Revertir el cambio si falló
+      set((state) => ({
+        assets: state.assets.map((a) =>
+          a.id === assetId ? asset : a
+        ),
+      }));
+    }
   },
   
   /**
@@ -129,12 +320,18 @@ export const useAssetsStore = create((set) => ({
    * @param {number} newPrice - Nuevo precio actual del mercado
    */
   updateCurrentPrice: (assetId, newPrice) => {
-    set((state) => ({
-      // Buscar el activo por ID y actualizar solo su currentPrice
-      assets: state.assets.map((asset) =>
+    set((state) => {
+      const updatedAssets = state.assets.map((asset) =>
         asset.id === assetId ? { ...asset, currentPrice: newPrice } : asset
-      ),
-    }));
+      );
+      
+      // Guardar en localStorage después de actualizar
+      // Nota: No guardamos cada actualización de precio para evitar sobrecargar localStorage
+      // Solo guardamos cuando el usuario hace cambios manuales
+      // saveAssetsToStorage(updatedAssets);
+      
+      return { assets: updatedAssets };
+    });
   },
   
   /**
@@ -145,12 +342,52 @@ export const useAssetsStore = create((set) => ({
    * 
    * @param {string} assetId - ID del activo a resetear
    */
-  resetAsset: (assetId) => {
+  resetAsset: async (assetId) => {
+    const state = get();
+    if (!state.currentUserId) {
+      console.warn('⚠️ No hay usuario logueado, no se puede resetear activo');
+      return;
+    }
+    
+    const asset = state.assets.find((a) => a.id === assetId);
+    if (!asset) {
+      console.error('Activo no encontrado:', assetId);
+      return;
+    }
+    
+    // Actualizar en el estado local primero (optimistic update)
     set((state) => ({
-      assets: state.assets.map((asset) =>
-        asset.id === assetId ? { ...asset, quantity: 0 } : asset
+      assets: state.assets.map((a) =>
+        a.id === assetId ? { ...a, quantity: 0 } : a
       ),
     }));
+    
+    // Guardar en Supabase
+    try {
+      const result = await updateAssetInSupabase(
+        assetId,
+        { quantity: 0 },
+        state.currentUserId
+      );
+      
+      if (result.error) {
+        console.error('Error al resetear activo en Supabase:', result.error);
+        // Revertir el cambio si falló
+        set((state) => ({
+          assets: state.assets.map((a) =>
+            a.id === assetId ? asset : a
+          ),
+        }));
+      }
+    } catch (error) {
+      console.error('Error inesperado al resetear activo:', error);
+      // Revertir el cambio si falló
+      set((state) => ({
+        assets: state.assets.map((a) =>
+          a.id === assetId ? asset : a
+        ),
+      }));
+    }
   },
   
   /**
@@ -161,11 +398,42 @@ export const useAssetsStore = create((set) => ({
    * 
    * @param {string} assetId - ID del activo a eliminar
    */
-  deleteAsset: (assetId) => {
+  deleteAsset: async (assetId) => {
+    const state = get();
+    if (!state.currentUserId) {
+      console.warn('⚠️ No hay usuario logueado, no se puede eliminar activo');
+      return;
+    }
+    
+    const asset = state.assets.find((a) => a.id === assetId);
+    if (!asset) {
+      console.error('Activo no encontrado:', assetId);
+      return;
+    }
+    
+    // Eliminar del estado local primero (optimistic update)
     set((state) => ({
-      // filter() devuelve solo los activos cuyo ID NO coincide con assetId
-      assets: state.assets.filter((asset) => asset.id !== assetId),
+      assets: state.assets.filter((a) => a.id !== assetId),
     }));
+    
+    // Eliminar de Supabase
+    try {
+      const result = await deleteAssetFromSupabase(assetId, state.currentUserId);
+      
+      if (!result.success) {
+        console.error('Error al eliminar activo en Supabase:', result.error);
+        // Revertir el cambio si falló (agregar el activo de vuelta)
+        set((state) => ({
+          assets: [...state.assets, asset].sort((a, b) => a.id - b.id),
+        }));
+      }
+    } catch (error) {
+      console.error('Error inesperado al eliminar activo:', error);
+      // Revertir el cambio si falló
+      set((state) => ({
+        assets: [...state.assets, asset].sort((a, b) => a.id - b.id),
+      }));
+    }
   },
   
   /**
@@ -182,33 +450,42 @@ export const useAssetsStore = create((set) => ({
    * @param {string} name - Nombre del activo (opcional, por defecto el símbolo)
    * @param {Array} brokers - Array de objetos {broker, quantity} (opcional)
    */
-  addNewAsset: (type, symbol, quantity, purchasePrice = 0, currentPrice = 0, name = null, brokers = null) => {
-    set((state) => {
-      // Calcular el siguiente ID disponible
-      // Si hay activos, encontrar el máximo ID y sumar 1
-      // Si no hay activos, empezar con ID 1
-      const maxId = state.assets.length > 0 
-        ? Math.max(...state.assets.map((a) => a.id)) 
-        : 0;
-      const newId = maxId + 1;
+  addNewAsset: async (type, symbol, quantity, purchasePrice = 0, currentPrice = 0, name = null, brokers = null) => {
+    const state = get();
+    if (!state.currentUserId) {
+      console.warn('⚠️ No hay usuario logueado, no se puede agregar activo');
+      return;
+    }
+    
+    // Crear el objeto de activo (sin ID, lo generará Supabase)
+    const newAsset = {
+      name: name || symbol,
+      symbol: symbol,
+      type: type,
+      quantity: parseFloat(quantity) || 0,
+      purchasePrice: parseFloat(purchasePrice) || 0,
+      currentPrice: parseFloat(currentPrice) || 0,
+      brokers: brokers || [],
+    };
+    
+    // Guardar en Supabase primero
+    try {
+      const result = await saveAssetToSupabase(newAsset, state.currentUserId);
       
-      // Crear el nuevo objeto de activo
-      const newAsset = {
-        id: newId,
-        name: name || symbol, // Usar el nombre proporcionado o el símbolo como respaldo
-        symbol: symbol,
-        type: type,
-        quantity: parseFloat(quantity) || 0, // Convertir a número, o 0 si falla
-        purchasePrice: parseFloat(purchasePrice) || 0, // Precio promedio de compra
-        currentPrice: parseFloat(currentPrice) || 0, // Precio actual del mercado
-        brokers: brokers || [], // Información de brokers y cantidades distribuidas
-      };
+      if (result.error) {
+        console.error('Error al guardar activo en Supabase:', result.error);
+        return;
+      }
       
-      // Agregar el nuevo activo al final del array usando spread operator
-      return {
-        assets: [...state.assets, newAsset],
-      };
-    });
+      // Si se guardó correctamente, agregar al estado local
+      set((state) => ({
+        assets: [...state.assets, result.data],
+      }));
+      
+      console.log('✅ Activo agregado correctamente:', result.data);
+    } catch (error) {
+      console.error('Error inesperado al agregar activo:', error);
+    }
   },
   
   /**
