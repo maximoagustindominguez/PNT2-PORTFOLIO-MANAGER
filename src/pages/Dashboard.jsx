@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAssets } from '../hooks/useAssets';
 import { Header } from '../components/Header/Header';
 import { Summary } from '../components/Summary/Summary';
@@ -29,9 +30,15 @@ export function Dashboard() {
   // Actualizar precios automáticamente cada 2 minutos usando Finnhub
   useFinnhubPrices(true);
 
+  // Estado para controlar la apertura del modal desde el header
+  const [triggerAddModal, setTriggerAddModal] = useState(0);
+
   return (
     <>
-      <Header onLogout={logOut} />
+      <Header 
+        onLogout={logOut} 
+        onAddAsset={() => setTriggerAddModal(prev => prev + 1)}
+      />
       {isLoading ? (
         <div className={styles.loadingContainer}>
           <p>Cargando activos...</p>
@@ -52,6 +59,7 @@ export function Dashboard() {
         onDeleteAsset={deleteAsset}
         onAddNewAsset={addNewAsset}
         onUpdateBrokers={updateAssetBrokers}
+        onOpenAddModal={triggerAddModal > 0 ? triggerAddModal : null}
       />
         </>
       )}

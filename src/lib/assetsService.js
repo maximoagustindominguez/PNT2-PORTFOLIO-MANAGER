@@ -171,34 +171,38 @@ export const updateAssetInSupabase = async (assetId, updates, userId) => {
     if (updates.isPriceEstimated !== undefined) updatesToDB.is_price_estimated = updates.isPriceEstimated;
 
     // Actualizar solo si el activo pertenece al usuario
+    // Nota: No usar .single() si puede haber problemas con JSON, usar .maybeSingle() o verificar manualmente
     const { data, error } = await supabase
       .from(ASSETS_TABLE)
       .update(updatesToDB)
       .eq('id', assetId)
       .eq('user_id', userId) // Verificar que el activo pertenece al usuario
-      .select()
-      .single();
-
+      .select();
+    
     if (error) {
       console.error('Error al actualizar activo en Supabase:', error);
       return { data: null, error: error.message };
     }
 
-    if (!data) {
+    // Verificar que se obtuvo exactamente un resultado
+    if (!data || data.length === 0) {
       return { data: null, error: 'Activo no encontrado o no pertenece al usuario' };
     }
-
+    
+    // Usar el primer resultado (debería haber solo uno)
+    const singleData = data[0];
+    
     // Convertir de formato de BD a formato de app
     const formattedAsset = {
-      id: data.id,
-      name: data.name,
-      symbol: data.symbol,
-      type: data.type,
-      quantity: data.quantity,
-      purchasePrice: data.purchase_price,
-      currentPrice: data.current_price,
-      brokers: data.brokers || [],
-      isPriceEstimated: data.is_price_estimated || false,
+      id: singleData.id,
+      name: singleData.name,
+      symbol: singleData.symbol,
+      type: singleData.type,
+      quantity: singleData.quantity,
+      purchasePrice: singleData.purchase_price,
+      currentPrice: singleData.current_price,
+      brokers: singleData.brokers || [],
+      isPriceEstimated: singleData.is_price_estimated || false,
     };
 
     return { data: formattedAsset, error: null };

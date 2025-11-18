@@ -21,52 +21,119 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
   const isProfit = totalProfit >= 0;
 
   const getTypeLabel = (type) => {
+    if (!type) return 'Desconocido';
+    
+    const normalizedType = type.toLowerCase().trim();
+    
     const types = {
-      stock: 'Acción',
-      accion: 'Acción', // Compatibilidad con datos antiguos
+      // Tipos actuales de Finnhub
+      stock: 'Acciones',
+      stocks: 'Acciones',
+      equity: 'Acciones',
+      equities: 'Acciones',
+      share: 'Acciones',
+      shares: 'Acciones',
+      action: 'Acciones',
+      acciones: 'Acciones',
+      accion: 'Acciones', // Compatibilidad con datos antiguos
+      
       crypto: 'Cripto',
+      cryptocurrency: 'Cripto',
+      cryptocurrencies: 'Cripto',
+      cripto: 'Cripto',
       criptomoneda: 'Cripto', // Compatibilidad con datos antiguos
+      criptomonedas: 'Cripto',
+      bitcoin: 'Cripto',
+      ethereum: 'Cripto',
+      
       etf: 'ETF',
-      fondo: 'Fondo', // Compatibilidad con datos antiguos
-      bond: 'Bono',
+      etfs: 'ETF',
+      exchange: 'ETF',
+      traded: 'ETF',
+      'exchange-traded': 'ETF',
+      'exchange traded': 'ETF',
+      fondo: 'Fondos', // Compatibilidad con datos antiguos
+      fondos: 'Fondos',
+      mutual: 'Fondos',
+      'mutual fund': 'Fondos',
+      'mutualfund': 'Fondos',
+      fund: 'Fondos', // Por defecto, fund se mapea a Fondos
+      funds: 'Fondos',
+      
+      bond: 'Bonos',
+      bonds: 'Bonos',
+      bono: 'Bonos',
+      treasury: 'Bonos',
+      treasuries: 'Bonos',
+      fixed: 'Bonos',
+      income: 'Bonos',
+      
+      // Otros tipos posibles
+      option: 'Opciones',
+      options: 'Opciones',
+      opcion: 'Opciones',
+      opciones: 'Opciones',
+      
+      future: 'Futuros',
+      futures: 'Futuros',
+      futuro: 'Futuros',
+      futuros: 'Futuros',
+      
+      commodity: 'Commodities',
+      commodities: 'Commodities',
+      materias: 'Commodities',
+      materia: 'Commodities',
+      
+      forex: 'Forex',
+      currency: 'Forex',
+      currencies: 'Forex',
+      divisas: 'Forex',
+      
+      real: 'Real Estate',
+      estate: 'Real Estate',
+      realestate: 'Real Estate',
+      inmuebles: 'Real Estate',
+      property: 'Real Estate',
+      
+      unknown: 'Desconocido',
+      desconocido: 'Desconocido',
+      other: 'Otros',
+      otros: 'Otros',
     };
-    return types[type] || type;
+    
+    return types[normalizedType] || type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
   };
 
   // Agrupar ganancias/pérdidas por tipo de activo
   const profitByType = useMemo(() => {
-    const grouped = {
-      stock: { profit: 0, label: 'Acciones' },
-      accion: { profit: 0, label: 'Acciones' }, // Compatibilidad
-      crypto: { profit: 0, label: 'Cripto' },
-      criptomoneda: { profit: 0, label: 'Cripto' }, // Compatibilidad
-      etf: { profit: 0, label: 'ETF' },
-      fondo: { profit: 0, label: 'Fondos' }, // Compatibilidad
-      bond: { profit: 0, label: 'Bonos' },
-    };
+    // Usar un Map para agrupar por etiqueta normalizada (como se muestra en AssetCard)
+    const grouped = new Map();
 
     assets.forEach((asset) => {
       const totalValue = asset.quantity * asset.currentPrice;
       const totalInvestment = asset.quantity * asset.purchasePrice;
       const profit = totalValue - totalInvestment;
 
-      // Normalizar tipos antiguos a nuevos
-      let normalizedType = asset.type;
-      if (asset.type === 'accion') normalizedType = 'stock';
-      else if (asset.type === 'criptomoneda') normalizedType = 'crypto';
-      else if (asset.type === 'fondo') normalizedType = 'etf';
-
-      if (grouped[normalizedType] || grouped[asset.type]) {
-        const targetGroup = grouped[normalizedType] || grouped[asset.type];
-        if (targetGroup) {
-          targetGroup.profit += profit;
-        }
+      // Obtener el tipo del asset tal como viene de la base de datos
+      const assetType = asset.type || 'stock';
+      
+      // Obtener la etiqueta normalizada usando getTypeLabel (igual que en AssetCard)
+      const typeLabel = getTypeLabel(assetType);
+      
+      // Agrupar por la etiqueta normalizada (no por el tipo crudo)
+      // Esto asegura que todos los activos del mismo tipo se agrupen correctamente
+      if (!grouped.has(typeLabel)) {
+        grouped.set(typeLabel, { profit: 0, label: typeLabel });
       }
+      
+      // Sumar la ganancia/pérdida
+      const group = grouped.get(typeLabel);
+      group.profit += profit;
     });
 
     // Convertir a array para el gráfico
-    return Object.entries(grouped)
-      .map(([type, data]) => ({
+    return Array.from(grouped.values())
+      .map((data) => ({
         name: data.label,
         value: Math.abs(data.profit),
         profit: data.profit,
@@ -79,13 +146,35 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
   const TYPE_COLORS = {
     'Acciones': '#646cff',
     'Cripto': '#f59e0b',
+    'ETF': '#10b981',
     'Fondos': '#10b981',
     'Bonos': '#8b5cf6',
+    'Opciones': '#ec4899',
+    'Futuros': '#06b6d4',
+    'Commodities': '#f97316',
+    'Forex': '#84cc16',
+    'Real Estate': '#a855f7',
+    'Desconocido': '#6b7280',
+    'Otros': '#6b7280',
   };
 
   // Función para obtener el color según el tipo
   const getColorForType = (typeName) => {
-    return TYPE_COLORS[typeName] || '#6b7280';
+    // Buscar el color exacto primero
+    if (TYPE_COLORS[typeName]) {
+      return TYPE_COLORS[typeName];
+    }
+    
+    // Si no se encuentra, buscar por coincidencia parcial (case-insensitive)
+    const normalizedName = typeName.toLowerCase();
+    for (const [key, color] of Object.entries(TYPE_COLORS)) {
+      if (key.toLowerCase() === normalizedName) {
+        return color;
+      }
+    }
+    
+    // Color por defecto para tipos no reconocidos
+    return '#6b7280';
   };
 
 

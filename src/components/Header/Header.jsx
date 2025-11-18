@@ -3,13 +3,38 @@ import { APP_TITLE } from '../../constants';
 import { useSessionStore } from '../../store/sessionStore';
 import { UserProfile } from '../UserProfile/UserProfile';
 import styles from './Header.module.css';
-// Importar el logo
-import logoImage from '../../assets/images/Imagen de WhatsApp 2025-11-18 a las 19.46.47_305e2560.jpg';
 
-export const Header = ({ onLogout }) => {
+export const Header = ({ onLogout, onAddAsset }) => {
   const user = useSessionStore((state) => state.user);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [logoImage, setLogoImage] = useState(null);
   const dropdownRef = useRef(null);
+  
+  // Cargar el logo dinámicamente
+  useEffect(() => {
+    const loadLogo = async () => {
+      // Lista de posibles nombres de archivo del logo (en orden de prioridad)
+      const logoFiles = [
+        '@logo.jpg',
+        'logo.jpg',
+        'logo.png',
+      ];
+      
+      for (const fileName of logoFiles) {
+        try {
+          // Importación dinámica con Vite
+          const logoModule = await import(`../../assets/images/${fileName}?url`);
+          setLogoImage(logoModule.default);
+          break; // Si se carga exitosamente, salir del loop
+        } catch (error) {
+          // Si este archivo no existe, intentar el siguiente
+          continue;
+        }
+      }
+    };
+    
+    loadLogo();
+  }, []);
   
   // Obtener nombre del usuario: primero custom name, luego email
   const customName = user?.user_metadata?.custom_name;
@@ -39,23 +64,49 @@ export const Header = ({ onLogout }) => {
 
   return (
     <header className={styles.header}>
-      <div className={styles.logoContainer}>
-        <img 
-          src={logoImage} 
-          alt="Portfolio Manager - ORT Escuela Técnica Buenos Aires" 
-          className={styles.logo}
-        />
-      </div>
-      <h1 className={styles.title}>{APP_TITLE}</h1>
+      {logoImage && (
+        <div className={styles.logoContainer}>
+          <img 
+            src={logoImage} 
+            alt="Portfolio Manager - ORT Escuela Técnica Buenos Aires" 
+            className={styles.logo}
+          />
+        </div>
+      )}
       {onLogout && user && (
-        <div className={styles.userActions} ref={dropdownRef}>
-          <button
-            type="button"
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className={styles.userButton}
-            aria-label={`Usuario: ${userName}`}
-            aria-expanded={isDropdownOpen}
-          >
+        <>
+          {onAddAsset && (
+            <button
+              type="button"
+              onClick={onAddAsset}
+              className={styles.addAssetButton}
+              aria-label="Agregar nuevo activo"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 5V19M5 12H19"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              Agregar Asset
+            </button>
+          )}
+          <div className={styles.userActions} ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={styles.userButton}
+              aria-label={`Usuario: ${userName}`}
+              aria-expanded={isDropdownOpen}
+            >
             <svg
               className={styles.userIcon}
               width="16"
@@ -90,6 +141,7 @@ export const Header = ({ onLogout }) => {
             </div>
           )}
         </div>
+        </>
       )}
     </header>
   );

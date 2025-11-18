@@ -7,9 +7,16 @@ import { searchSymbols, detectAssetType, getAssetPrice } from '../../lib/finnhub
 import { CURRENCY_SYMBOL } from '../../constants';
 import styles from './Dashboard.module.css';
 
-export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onAddNewAsset, onUpdateBrokers }) => {
+export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onAddNewAsset, onUpdateBrokers, onOpenAddModal }) => {
   const [viewMode, setViewMode] = useState('cards');
   const { isOpen: showAddModal, openModal: openAddModal, closeModal: closeAddModal } = useModal(false);
+  
+  // Abrir el modal cuando se recibe la señal desde el Header
+  useEffect(() => {
+    if (onOpenAddModal) {
+      openAddModal();
+    }
+  }, [onOpenAddModal, openAddModal]);
   
   // Estados para el modal de agregar activo
   const [searchQuery, setSearchQuery] = useState('');
