@@ -4,21 +4,13 @@ import { CURRENCY_SYMBOL } from '../../constants';
 import { useModal } from '../../hooks/useModal';
 import styles from './AssetCard.module.css';
 
-export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurrentPrice, onResetAsset, onDeleteAsset }) => {
+export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset }) => {
   const { isOpen: showModal, openModal: openModal, closeModal: closeModal } = useModal(false);
   const { isOpen: showConfirmModal, openModal: openConfirmModal, closeModal: closeConfirmModal } = useModal(false);
   const [modalQuantityChange, setModalQuantityChange] = useState('0');
   const [modalPrice, setModalPrice] = useState(asset.purchasePrice.toString());
-  const [editCurrentPrice, setEditCurrentPrice] = useState(false);
-  const [newCurrentPrice, setNewCurrentPrice] = useState(asset.currentPrice.toString());
   const [showMenu, setShowMenu] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // 'reset' o 'delete'
-
-  useEffect(() => {
-    if (!editCurrentPrice) {
-      setNewCurrentPrice(asset.currentPrice.toString());
-    }
-  }, [asset.currentPrice, editCurrentPrice]);
 
   const totalValue = asset.quantity * asset.currentPrice;
   const totalInvestment = asset.quantity * asset.purchasePrice;
@@ -131,16 +123,6 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
   })();
   
   const newQuantity = asset.quantity + quantityChangeNum;
-
-  const handleUpdateCurrentPrice = (e) => {
-    e.preventDefault();
-    const price = parseFloat(newCurrentPrice);
-
-    if (price > 0) {
-      onUpdateCurrentPrice(asset.id, price);
-      setEditCurrentPrice(false);
-    }
-  };
 
   const handleResetAsset = () => {
     setConfirmAction('reset');
@@ -256,47 +238,13 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onUpdateCurr
 
         <div className={styles.row}>
           <span className={styles.label}>Precio Actual</span>
-          {editCurrentPrice ? (
-            <form onSubmit={handleUpdateCurrentPrice} className={styles.priceForm}>
-              <input
-                type="number"
-                step="0.01"
-                value={newCurrentPrice}
-                onChange={(e) => setNewCurrentPrice(e.target.value)}
-                className={styles.priceInput}
-              />
-              <button type="submit" className={styles.saveBtn}>
-                ✓
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditCurrentPrice(false);
-                  setNewCurrentPrice(asset.currentPrice.toString());
-                }}
-                className={styles.cancelBtn}
-              >
-                ✕
-              </button>
-            </form>
-          ) : (
-            <div className={styles.priceControls}>
-              <span className={styles.value}>
-                {CURRENCY_SYMBOL}
-                {asset.currentPrice.toLocaleString('es-AR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </span>
-              <button
-                type="button"
-                className={styles.editBtn}
-                onClick={() => setEditCurrentPrice(true)}
-              >
-                Editar
-              </button>
-            </div>
-          )}
+          <span className={styles.value}>
+            {CURRENCY_SYMBOL}
+            {asset.currentPrice.toLocaleString('es-AR', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </span>
         </div>
 
         <div className={styles.row}>

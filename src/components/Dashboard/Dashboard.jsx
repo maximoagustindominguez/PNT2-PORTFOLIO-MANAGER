@@ -5,7 +5,7 @@ import { AssetTable } from '../AssetTable/AssetTable';
 import { useModal } from '../../hooks/useModal';
 import styles from './Dashboard.module.css';
 
-export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCurrentPrice, onResetAsset, onDeleteAsset, onAddNewAsset }) => {
+export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onAddNewAsset }) => {
   const [viewMode, setViewMode] = useState('cards');
   const { isOpen: showAddModal, openModal: openAddModal, closeModal: closeAddModal } = useModal(false);
   const [newAssetType, setNewAssetType] = useState('accion');
@@ -40,7 +40,6 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onUpdateCur
                 asset={asset}
                 onAddQuantity={onAddQuantity}
                 onReduceQuantity={onReduceQuantity}
-                onUpdateCurrentPrice={onUpdateCurrentPrice}
                 onResetAsset={onResetAsset}
                 onDeleteAsset={onDeleteAsset}
               />
