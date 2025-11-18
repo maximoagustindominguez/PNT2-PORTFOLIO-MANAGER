@@ -3,6 +3,8 @@ import { APP_TITLE } from '../../constants';
 import { useSessionStore } from '../../store/sessionStore';
 import { UserProfile } from '../UserProfile/UserProfile';
 import styles from './Header.module.css';
+// Importar el logo
+import logoImage from '../../assets/images/Imagen de WhatsApp 2025-11-18 a las 19.46.47_305e2560.jpg';
 
 export const Header = ({ onLogout }) => {
   const user = useSessionStore((state) => state.user);
@@ -37,6 +39,13 @@ export const Header = ({ onLogout }) => {
 
   return (
     <header className={styles.header}>
+      <div className={styles.logoContainer}>
+        <img 
+          src={logoImage} 
+          alt="Portfolio Manager - ORT Escuela Técnica Buenos Aires" 
+          className={styles.logo}
+        />
+      </div>
       <h1 className={styles.title}>{APP_TITLE}</h1>
       {onLogout && user && (
         <div className={styles.userActions} ref={dropdownRef}>
