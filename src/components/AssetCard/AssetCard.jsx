@@ -239,7 +239,9 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
     <div className={styles.card}>
       <div className={styles.header}>
         <div className={styles.nameSection}>
-          <h3 className={styles.name}>{asset.name}</h3>
+          <h3 className={styles.name} title={asset.name}>
+            {asset.name}
+          </h3>
           <span className={styles.symbol}>{asset.symbol}</span>
         </div>
         <div className={styles.headerRight}>

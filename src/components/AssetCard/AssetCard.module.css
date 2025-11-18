@@ -28,18 +28,24 @@ body.modal-open .card:hover {
   align-items: flex-start;
   padding-bottom: 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.75rem; /* Espacio entre nameSection y headerRight */
+  min-height: 3.5rem; /* Altura mínima para mantener consistencia */
 }
 
 .headerRight {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-shrink: 0; /* Evita que se comprima */
 }
 
 .nameSection {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
+  min-width: 0; /* Permite que el contenido se trunque correctamente */
+  max-width: 100%; /* Evita que se desborde */
 }
 
 .name {
@@ -47,6 +53,13 @@ body.modal-open .card:hover {
   font-weight: 600;
   color: rgba(255, 255, 255, 0.95);
   margin: 0;
+  /* Truncar texto con ellipsis si es muy largo */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Limitar a una sola línea */
+  line-height: 1.4;
+  max-height: 1.4em; /* Altura de una línea */
 }
 
 .symbol {
@@ -862,6 +875,14 @@ body.modal-open .card:hover {
 
   .name {
     font-size: 1.1rem;
+    /* Mantener truncamiento en móviles */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .header {
+    min-height: 3rem; /* Altura mínima ajustada para móviles */
   }
 
   .profitValue {
