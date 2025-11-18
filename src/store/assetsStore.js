@@ -321,9 +321,18 @@ export const useAssetsStore = create((set, get) => ({
    */
   updateCurrentPrice: (assetId, newPrice) => {
     set((state) => {
-      const updatedAssets = state.assets.map((asset) =>
-        asset.id === assetId ? { ...asset, currentPrice: newPrice } : asset
-      );
+      const updatedAssets = state.assets.map((asset) => {
+        if (asset.id === assetId) {
+          // Si se actualiza el precio y es mayor a 0, quitar el flag de precio estimado
+          const isPriceValid = newPrice && newPrice > 0;
+          return { 
+            ...asset, 
+            currentPrice: newPrice,
+            isPriceEstimated: isPriceValid ? false : asset.isPriceEstimated, // Quitar flag si el precio es válido
+          };
+        }
+        return asset;
+      });
       
       // Guardar en localStorage después de actualizar
       // Nota: No guardamos cada actualización de precio para evitar sobrecargar localStorage
@@ -450,7 +459,7 @@ export const useAssetsStore = create((set, get) => ({
    * @param {string} name - Nombre del activo (opcional, por defecto el símbolo)
    * @param {Array} brokers - Array de objetos {broker, quantity} (opcional)
    */
-  addNewAsset: async (type, symbol, quantity, purchasePrice = 0, currentPrice = 0, name = null, brokers = null) => {
+  addNewAsset: async (type, symbol, quantity, purchasePrice = 0, currentPrice = 0, name = null, brokers = null, isPriceEstimated = false) => {
     const state = get();
     if (!state.currentUserId) {
       console.warn('⚠️ No hay usuario logueado, no se puede agregar activo');
@@ -466,6 +475,7 @@ export const useAssetsStore = create((set, get) => ({
       purchasePrice: parseFloat(purchasePrice) || 0,
       currentPrice: parseFloat(currentPrice) || 0,
       brokers: brokers || [],
+      isPriceEstimated: isPriceEstimated || (currentPrice === 0), // Marcar como estimado si no hay precio
     };
     
     // Guardar en Supabase primero

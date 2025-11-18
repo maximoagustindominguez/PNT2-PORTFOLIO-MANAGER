@@ -26,6 +26,7 @@
 import { useEffect, useRef } from 'react';
 import { useAssetsStore } from '../store/assetsStore';
 import { updateAssetPrices } from '../lib/finnhub';
+import { updateAssetInSupabase } from '../lib/assetsService';
 
 // ============================================
 // CONSTANTES DE CONFIGURACIÓN
@@ -158,9 +159,22 @@ export const useFinnhubPrices = (enabled = true) => {
         // ============================================
         // Llamar a la función del servicio de Finnhub
         // Esta función procesa los activos en lotes y actualiza los precios
+        // También actualiza el flag isPriceEstimated cuando se obtiene un precio válido
         const result = await updateAssetPrices(
           assetsToUpdate, // Array de activos a actualizar
-          updateCurrentPriceRef.current, // Función callback para actualizar cada precio
+          (assetId, price) => {
+            // Actualizar precio y quitar flag de precio estimado si el precio es válido
+            updateCurrentPriceRef.current(assetId, price);
+            if (price && price > 0) {
+              // Actualizar el flag en Supabase también
+              const state = useAssetsStore.getState();
+              if (state.currentUserId) {
+                updateAssetInSupabase(assetId, { isPriceEstimated: false }, state.currentUserId).catch(err => {
+                  console.error('Error al actualizar flag de precio estimado:', err);
+                });
+              }
+            }
+          },
           apiKey // Clave de API
         );
 

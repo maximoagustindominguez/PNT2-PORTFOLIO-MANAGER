@@ -586,6 +586,43 @@ body.modal-open .card:hover {
   color: #ef4444;
 }
 
+/* Advertencia de precio estimado */
+.estimatedBadge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background-color: rgba(245, 158, 11, 0.2);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: #f59e0b;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.estimatedWarning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.warningIcon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.warningText {
+  flex: 1;
+  line-height: 1.4;
+}
+
 .confirmMessage {
   margin: 1rem 0;
   padding: 1rem;

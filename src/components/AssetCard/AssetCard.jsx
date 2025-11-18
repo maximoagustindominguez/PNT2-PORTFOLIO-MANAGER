@@ -313,8 +313,21 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
+            {asset.isPriceEstimated && (
+              <span className={styles.estimatedBadge} title="Precio estimado - Se actualizará automáticamente">
+                ⚠️ Estimado
+              </span>
+            )}
           </span>
         </div>
+        {asset.isPriceEstimated && (
+          <div className={styles.estimatedWarning}>
+            <span className={styles.warningIcon}>⚠️</span>
+            <span className={styles.warningText}>
+              El valor está estimado. Debe aguardarse una actualización del sistema.
+            </span>
+          </div>
+        )}
 
         <div className={styles.row}>
           <span className={styles.label}>Valor Total</span>

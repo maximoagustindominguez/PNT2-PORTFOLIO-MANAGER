@@ -73,6 +73,7 @@ export const loadAssetsFromSupabase = async (userId) => {
       purchasePrice: parseFloat(item.purchase_price) || 0,
       currentPrice: parseFloat(item.current_price) || 0,
       brokers: item.brokers || [],
+      isPriceEstimated: item.is_price_estimated || false,
     }));
 
     // Si no hay datos, devolver array vacío
@@ -109,6 +110,7 @@ export const saveAssetToSupabase = async (asset, userId) => {
       purchase_price: asset.purchasePrice, // En la BD usamos snake_case
       current_price: asset.currentPrice,
       brokers: asset.brokers || [], // Array de brokers (se guarda como JSON)
+      is_price_estimated: asset.isPriceEstimated || false, // Flag para precio estimado
     };
 
     const { data, error } = await supabase
@@ -166,6 +168,7 @@ export const updateAssetInSupabase = async (assetId, updates, userId) => {
     if (updates.purchasePrice !== undefined) updatesToDB.purchase_price = updates.purchasePrice;
     if (updates.currentPrice !== undefined) updatesToDB.current_price = updates.currentPrice;
     if (updates.brokers !== undefined) updatesToDB.brokers = updates.brokers;
+    if (updates.isPriceEstimated !== undefined) updatesToDB.is_price_estimated = updates.isPriceEstimated;
 
     // Actualizar solo si el activo pertenece al usuario
     const { data, error } = await supabase
@@ -195,6 +198,7 @@ export const updateAssetInSupabase = async (assetId, updates, userId) => {
       purchasePrice: data.purchase_price,
       currentPrice: data.current_price,
       brokers: data.brokers || [],
+      isPriceEstimated: data.is_price_estimated || false,
     };
 
     return { data: formattedAsset, error: null };
@@ -280,6 +284,7 @@ export const syncAllAssetsToSupabase = async (assets, userId) => {
       purchase_price: asset.purchasePrice,
       current_price: asset.currentPrice,
       brokers: asset.brokers || [],
+      is_price_estimated: asset.isPriceEstimated || false,
     }));
 
     // Insertar todos los activos

@@ -22,6 +22,7 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
   const [brokers, setBrokers] = useState([{ broker: '', quantity: '', purchasePrice: '' }]); // Array de {broker, quantity, purchasePrice}
   const [isLoadingPrice, setIsLoadingPrice] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [isPriceEstimated, setIsPriceEstimated] = useState(false); // Flag para precio estimado
   
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -83,14 +84,24 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
         const result = await getAssetPrice(selectedSymbol, selectedAssetType, apiKey);
         if (result.price && result.price > 0) {
           setCurrentPrice(result.price);
-          // Si no hay PPC ingresado, usar el precio actual como default
-          setPurchasePrice((prev) => prev || result.price.toString());
+          setIsPriceEstimated(false); // Precio real obtenido
+          // Si no hay PPC ingresado en los brokers, usar el precio actual como default
+          setBrokers(prevBrokers => 
+            prevBrokers.map(broker => ({
+              ...broker,
+              purchasePrice: broker.purchasePrice || result.price.toString()
+            }))
+          );
         } else {
+          // Si no hay precio disponible (rate limit o error), usar 0 como valor por defecto
+          // El sistema marcará el activo como "precio estimado"
           setCurrentPrice(0);
+          setIsPriceEstimated(true); // Marcar como precio estimado
         }
       } catch (error) {
         console.error('Error al obtener precio:', error);
         setCurrentPrice(0);
+        setIsPriceEstimated(true); // Marcar como precio estimado si hay error
       } finally {
         setIsLoadingPrice(false);
       }
@@ -157,6 +168,7 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
     setBrokers([{ broker: '', quantity: '', purchasePrice: '' }]);
     setIsLoadingPrice(false);
     setIsSearching(false);
+    setIsPriceEstimated(false);
   };
 
   // Manejar cierre del modal
@@ -209,8 +221,9 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
     
     try {
       // Guardar el activo con la información de brokers y el PPC promedio
-      // Ahora es asíncrono, así que esperamos a que termine
-      await onAddNewAsset(selectedAssetType, selectedSymbol, totalQuantity, averagePPC, currentPrice, assetName, validBrokers);
+      // Si el precio es 0 o está estimado, pasar el flag isPriceEstimated
+      const shouldMarkAsEstimated = currentPrice === 0 || isPriceEstimated;
+      await onAddNewAsset(selectedAssetType, selectedSymbol, totalQuantity, averagePPC, currentPrice, assetName, validBrokers, shouldMarkAsEstimated);
       // Solo cerrar el modal si se guardó correctamente
       handleCloseModal();
     } catch (error) {

@@ -35,6 +35,10 @@ CREATE TABLE IF NOT EXISTS assets (
   -- Formato: [{"broker": "nombre", "quantity": 10, "purchasePrice": 100}]
   brokers JSONB DEFAULT '[]'::jsonb,
   
+  -- Flag para indicar si el precio actual es estimado (por falta de datos en tiempo real)
+  -- true = precio estimado, false = precio real obtenido de la API
+  is_price_estimated BOOLEAN DEFAULT false,
+  
   -- Timestamps automáticos
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
