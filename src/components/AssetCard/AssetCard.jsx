@@ -6,13 +6,12 @@ import { useModal } from '../../hooks/useModal';
 import { getStockCandles, getTimeframeParams } from '../../lib/finnhub';
 import styles from './AssetCard.module.css';
 
-export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset }) => {
+export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onUpdateBrokers }) => {
   const { isOpen: showModal, openModal: openModal, closeModal: closeModal } = useModal(false);
   const { isOpen: showConfirmModal, openModal: openConfirmModal, closeModal: closeConfirmModal } = useModal(false);
   const { isOpen: showDetailModal, openModal: openDetailModal, closeModal: closeDetailModal } = useModal(false);
   const { isOpen: showChartModal, openModal: openChartModal, closeModal: closeChartModal } = useModal(false);
-  const [modalQuantityChange, setModalQuantityChange] = useState('0');
-  const [modalPrice, setModalPrice] = useState(asset.purchasePrice.toString());
+  const [modalBrokers, setModalBrokers] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // 'reset' o 'delete'
   
@@ -94,104 +93,91 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
     loadChartData();
   }, [showChartModal, chartTimeframe, asset.symbol, asset.type, apiKey]);
 
-  const calculateNewAveragePrice = (quantityChange, purchasePrice) => {
-    const currentQuantity = asset.quantity;
-    const currentPurchasePrice = asset.purchasePrice;
+  // Calcular cantidad total y PPC promedio ponderado desde los brokers
+  const calculateTotalsFromBrokers = () => {
+    let totalQuantity = 0;
+    let totalValue = 0;
     
-    // Manejar valores vacíos o inválidos
-    let quantityChangeNum = 0;
-    if (quantityChange !== '' && quantityChange !== '-' && quantityChange !== null && quantityChange !== undefined) {
-      const parsed = parseFloat(quantityChange);
-      quantityChangeNum = isNaN(parsed) ? 0 : parsed;
-    }
+    modalBrokers.forEach(broker => {
+      const qty = parseFloat(broker.quantity) || 0;
+      const ppc = parseFloat(broker.purchasePrice) || 0;
+      if (qty > 0 && ppc > 0) {
+        totalQuantity += qty;
+        totalValue += qty * ppc;
+      }
+    });
     
-    let purchasePriceNum = 0;
-    if (purchasePrice !== '' && purchasePrice !== '-' && purchasePrice !== null && purchasePrice !== undefined) {
-      const parsed = parseFloat(purchasePrice);
-      purchasePriceNum = isNaN(parsed) ? 0 : parsed;
-    }
+    const averagePPC = totalQuantity > 0 ? totalValue / totalQuantity : 0;
+    
+    return { totalQuantity, averagePPC };
+  };
 
-    // Si no hay cambio en la cantidad, devolver el precio actual
-    if (quantityChangeNum === 0) {
-      return currentPurchasePrice;
-    }
+  const { totalQuantity: calculatedTotalQuantity, averagePPC: calculatedAveragePPC } = calculateTotalsFromBrokers();
 
-    if (quantityChangeNum > 0) {
-      // Agregar cantidad
-      if (currentQuantity === 0) {
-        // Si la cantidad actual es 0, el nuevo precio es el precio de compra ingresado
-        return purchasePriceNum > 0 ? purchasePriceNum : currentPurchasePrice;
-      }
-      // Si no hay precio de compra válido, mantener el precio actual
-      if (purchasePriceNum <= 0) {
-        return currentPurchasePrice;
-      }
-      // Calcular el nuevo precio promedio ponderado
-      const totalCurrentValue = currentQuantity * currentPurchasePrice;
-      const newQuantityValue = quantityChangeNum * purchasePriceNum;
-      const newTotalQuantity = currentQuantity + quantityChangeNum;
-      const newAverage = (totalCurrentValue + newQuantityValue) / newTotalQuantity;
-      return newAverage;
-    } else {
-      // Reducir cantidad - el precio promedio no cambia al reducir
-      return currentPurchasePrice;
+  const handleBrokerChange = (index, field, value) => {
+    const updatedBrokers = [...modalBrokers];
+    updatedBrokers[index] = {
+      ...updatedBrokers[index],
+      [field]: value,
+    };
+    setModalBrokers(updatedBrokers);
+  };
+
+  const handleAddBroker = () => {
+    setModalBrokers([...modalBrokers, { broker: '', quantity: '0', purchasePrice: '0' }]);
+  };
+
+  const handleRemoveBroker = (index) => {
+    if (modalBrokers.length > 1) {
+      const updatedBrokers = modalBrokers.filter((_, i) => i !== index);
+      setModalBrokers(updatedBrokers);
     }
   };
 
-  const handleModalSubmit = (e) => {
+  const handleModalSubmit = async (e) => {
     e.preventDefault();
-    const quantityChange = parseFloat(modalQuantityChange) || 0;
-    const purchasePrice = parseFloat(modalPrice);
-
-    if (purchasePrice <= 0 && quantityChange > 0) return;
-
-    if (quantityChange > 0) {
-      // Agregar cantidad
-      onAddQuantity(asset.id, quantityChange, purchasePrice);
-    } else if (quantityChange < 0) {
-      // Reducir cantidad
-      onReduceQuantity(asset.id, Math.abs(quantityChange));
+    
+    // Validar que haya al menos un broker con datos válidos
+    const validBrokers = modalBrokers.filter(b => 
+      b.broker && b.broker.trim() && 
+      parseFloat(b.quantity) > 0 && 
+      parseFloat(b.purchasePrice) > 0
+    );
+    
+    if (validBrokers.length === 0) {
+      alert('Debe haber al menos un broker con cantidad y PPC válidos');
+      return;
     }
-
-    closeModal();
+    
+    if (onUpdateBrokers) {
+      const result = await onUpdateBrokers(asset.id, validBrokers);
+      if (result.success) {
+        closeModal();
+      } else {
+        alert(result.error || 'Error al actualizar los brokers');
+      }
+    }
   };
 
   const handleModalCancel = () => {
-    setModalQuantityChange('0');
-    setModalPrice(asset.purchasePrice.toString());
+    setModalBrokers([]);
     closeModal();
   };
 
   const handleOpenModal = () => {
-    setModalQuantityChange('0');
-    setModalPrice(asset.purchasePrice.toString());
+    // Inicializar los brokers desde el asset, o crear uno vacío si no hay
+    if (asset.brokers && asset.brokers.length > 0) {
+      setModalBrokers(asset.brokers.map(b => ({
+        broker: b.broker || '',
+        quantity: b.quantity?.toString() || '0',
+        purchasePrice: b.purchasePrice?.toString() || '0',
+      })));
+    } else {
+      // Si no hay brokers, crear uno vacío
+      setModalBrokers([{ broker: '', quantity: '0', purchasePrice: '0' }]);
+    }
     openModal();
   };
-
-  const handleIncrementQuantity = () => {
-    const current = parseFloat(modalQuantityChange) || 0;
-    const step = parseFloat(getQuantityStep());
-    const newValue = current + step;
-    setModalQuantityChange(newValue.toString());
-  };
-
-  const handleDecrementQuantity = () => {
-    const current = parseFloat(modalQuantityChange) || 0;
-    const step = parseFloat(getQuantityStep());
-    const newValue = Math.max(-asset.quantity, current - step);
-    setModalQuantityChange(newValue.toString());
-  };
-
-  // Calcular el nuevo precio promedio en tiempo real
-  const newAveragePrice = calculateNewAveragePrice(modalQuantityChange, modalPrice);
-  
-  const quantityChangeNum = (() => {
-    if (modalQuantityChange === '' || modalQuantityChange === '-') return 0;
-    const parsed = parseFloat(modalQuantityChange);
-    return isNaN(parsed) ? 0 : parsed;
-  })();
-  
-  const newQuantity = asset.quantity + quantityChangeNum;
 
   const handleResetAsset = () => {
     setConfirmAction('reset');
@@ -359,13 +345,13 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
           >
             Ver detalle
           </button>
-          <button
-            type="button"
-            className={styles.actionButton}
-            onClick={handleOpenModal}
-          >
-            Modificar cantidad del activo
-          </button>
+        <button
+          type="button"
+          className={styles.actionButton}
+          onClick={handleOpenModal}
+        >
+          Modificar
+        </button>
         </div>
       </div>
 
@@ -410,87 +396,111 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
             >
               <h3 className={styles.modalTitle}>Modificar cantidad del activo</h3>
               <form onSubmit={handleModalSubmit} className={styles.modalForm}>
+                {/* Lista de brokers */}
                 <div className={styles.modalFormGroup}>
-                  <label className={styles.modalLabel}>Cantidad actual</label>
-                  <div className={styles.modalCurrentValue}>
-                    {asset.quantity.toLocaleString('es-AR', {
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 2,
-                    })}
-                  </div>
-                </div>
-                <div className={styles.modalFormGroup}>
-                  <label className={styles.modalLabel}>Variación de cantidad</label>
-                  <div className={styles.quantityInputGroup}>
+                  <label className={styles.modalLabel}>Brokers y cantidades</label>
+                  <div className={styles.brokersList}>
+                    {modalBrokers.map((broker, index) => (
+                      <div key={index} className={styles.brokerRow}>
+                        <input
+                          type="text"
+                          placeholder="Nombre del broker"
+                          value={broker.broker}
+                          onChange={(e) => handleBrokerChange(index, 'broker', e.target.value)}
+                          className={styles.brokerInput}
+                          onBlur={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        />
+                        <input
+                          type="number"
+                          step={getQuantityStep()}
+                          min="0"
+                          placeholder="Cantidad"
+                          value={broker.quantity}
+                          onChange={(e) => handleBrokerChange(index, 'quantity', e.target.value)}
+                          className={styles.quantityInput}
+                          onBlur={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        />
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="PPC"
+                          value={broker.purchasePrice}
+                          onChange={(e) => handleBrokerChange(index, 'purchasePrice', e.target.value)}
+                          className={styles.ppcInput}
+                          onBlur={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                        />
+                        {modalBrokers.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              handleRemoveBroker(index);
+                            }}
+                            className={styles.removeBrokerBtn}
+                            onMouseDown={(e) => e.stopPropagation()}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    ))}
                     <button
                       type="button"
-                      onClick={handleDecrementQuantity}
-                      className={styles.quantityButton}
-                      disabled={parseFloat(modalQuantityChange) <= -asset.quantity}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleAddBroker();
+                      }}
+                      className={styles.addBrokerBtn}
+                      onMouseDown={(e) => e.stopPropagation()}
                     >
-                      −
-                    </button>
-                    <input
-                      type="number"
-                      step={getQuantityStep()}
-                      value={modalQuantityChange}
-                      readOnly
-                      className={styles.modalInput}
-                    />
-                    <button
-                      type="button"
-                      onClick={handleIncrementQuantity}
-                      className={styles.quantityButton}
-                    >
-                      +
+                      + Agregar broker
                     </button>
                   </div>
                 </div>
-                <div className={styles.modalFormGroup}>
-                  <label className={styles.modalLabel}>Precio de compra</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={modalPrice}
-                    onChange={(e) => setModalPrice(e.target.value)}
-                    className={styles.modalInput}
-                    required={parseFloat(modalQuantityChange) > 0}
-                  />
-                </div>
-                <div className={styles.modalFormGroup}>
-                  <label className={styles.modalLabel}>Variación de PPC</label>
-                  <div className={styles.modalCurrentValue}>
-                    {CURRENCY_SYMBOL}
-                    {Number.isFinite(newAveragePrice) 
-                      ? newAveragePrice.toLocaleString('es-AR', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })
-                      : asset.purchasePrice.toLocaleString('es-AR', {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })
-                    }
+
+                {/* Totales calculados */}
+                <div className={styles.totalsRow}>
+                  <div className={styles.modalFormGroup}>
+                    <label className={styles.modalLabel}>Cantidad total</label>
+                    <div className={styles.modalCurrentValue}>
+                      {calculatedTotalQuantity.toLocaleString('es-AR', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 8,
+                      })}
+                    </div>
+                  </div>
+                  <div className={styles.modalFormGroup}>
+                    <label className={styles.modalLabel}>PPC</label>
+                    <div className={styles.modalCurrentValue}>
+                      {CURRENCY_SYMBOL}
+                      {calculatedAveragePPC.toLocaleString('es-AR', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
                   </div>
                 </div>
+
                 <div className={styles.modalButtons}>
                   <button
                     type="button"
                     onClick={handleModalCancel}
                     className={styles.modalCancelBtn}
                   >
-                    Rechazar
+                    Cancelar
                   </button>
                   <button
                     type="submit"
                     className={styles.modalAcceptBtn}
-                    disabled={
-                      parseFloat(modalQuantityChange) === 0 ||
-                      (parseFloat(modalQuantityChange) > 0 && parseFloat(modalPrice) <= 0)
-                    }
+                    disabled={calculatedTotalQuantity <= 0 || calculatedAveragePPC <= 0}
                   >
-                    Aceptar
+                    Guardar
                   </button>
                 </div>
               </form>

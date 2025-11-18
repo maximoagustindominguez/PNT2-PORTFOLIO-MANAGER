@@ -39,6 +39,7 @@ export const useAssets = () => {
   const resetAsset = useAssetsStore((state) => state.resetAsset);
   const deleteAsset = useAssetsStore((state) => state.deleteAsset);
   const addNewAsset = useAssetsStore((state) => state.addNewAsset);
+  const updateAssetBrokers = useAssetsStore((state) => state.updateAssetBrokers);
 
   // ============================================
   // CALCULAR TOTALES DE FORMA REACTIVA
@@ -91,6 +92,7 @@ export const useAssets = () => {
     resetAsset,
     deleteAsset,
     addNewAsset,
+    updateAssetBrokers,
     totalValue,
     totalInvestment,
     totalProfit,

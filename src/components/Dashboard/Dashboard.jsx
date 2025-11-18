@@ -7,7 +7,7 @@ import { searchSymbols, detectAssetType, getAssetPrice } from '../../lib/finnhub
 import { CURRENCY_SYMBOL } from '../../constants';
 import styles from './Dashboard.module.css';
 
-export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onAddNewAsset }) => {
+export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onAddNewAsset, onUpdateBrokers }) => {
   const [viewMode, setViewMode] = useState('cards');
   const { isOpen: showAddModal, openModal: openAddModal, closeModal: closeAddModal } = useModal(false);
   
@@ -256,14 +256,15 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
         <>
           <div className={styles.cardsContainer}>
             {assets.map((asset) => (
-              <AssetCard
-                key={asset.id}
-                asset={asset}
-                onAddQuantity={onAddQuantity}
-                onReduceQuantity={onReduceQuantity}
-                onResetAsset={onResetAsset}
-                onDeleteAsset={onDeleteAsset}
-              />
+                <AssetCard
+                  key={asset.id}
+                  asset={asset}
+                  onAddQuantity={onAddQuantity}
+                  onReduceQuantity={onReduceQuantity}
+                  onResetAsset={onResetAsset}
+                  onDeleteAsset={onDeleteAsset}
+                  onUpdateBrokers={onUpdateBrokers}
+                />
             ))}
             <button
               type="button"

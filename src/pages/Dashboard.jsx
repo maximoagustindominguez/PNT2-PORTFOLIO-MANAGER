@@ -15,6 +15,7 @@ export function Dashboard() {
     resetAsset,
     deleteAsset,
     addNewAsset,
+    updateAssetBrokers,
     totalValue,
     totalInvestment,
     totalProfit,
@@ -43,14 +44,15 @@ export function Dashboard() {
             totalProfit={totalProfit}
             assets={assets}
           />
-          <DashboardComponent
-            assets={assets}
-            onAddQuantity={addAssetQuantity}
-            onReduceQuantity={reduceAssetQuantity}
-            onResetAsset={resetAsset}
-            onDeleteAsset={deleteAsset}
-            onAddNewAsset={addNewAsset}
-          />
+      <DashboardComponent
+        assets={assets}
+        onAddQuantity={addAssetQuantity}
+        onReduceQuantity={reduceAssetQuantity}
+        onResetAsset={resetAsset}
+        onDeleteAsset={deleteAsset}
+        onAddNewAsset={addNewAsset}
+        onUpdateBrokers={updateAssetBrokers}
+      />
         </>
       )}
     </>

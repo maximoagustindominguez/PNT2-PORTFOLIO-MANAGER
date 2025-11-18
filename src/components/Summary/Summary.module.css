@@ -46,12 +46,20 @@
   border-left: 4px solid #4ade80;
 }
 
+.profit .value {
+  color: #4ade80; /* Verde para valores positivos */
+}
+
 .profit .percentage {
   color: #4ade80;
 }
 
 .loss {
   border-left: 4px solid #f87171;
+}
+
+.loss .value {
+  color: #f87171; /* Rojo para valores negativos */
 }
 
 .loss .percentage {

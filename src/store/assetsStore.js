@@ -446,6 +446,111 @@ export const useAssetsStore = create((set, get) => ({
   },
   
   /**
+   * ACTUALIZAR BROKERS DE UN ACTIVO
+   * 
+   * Actualiza los brokers de un activo y recalcula automáticamente
+   * la cantidad total y el PPC promedio ponderado.
+   * 
+   * @param {string} assetId - ID del activo a modificar
+   * @param {Array} brokers - Array de objetos {broker, quantity, purchasePrice}
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  updateAssetBrokers: async (assetId, brokers) => {
+    const state = get();
+    if (!state.currentUserId) {
+      console.warn('⚠️ No hay usuario logueado, no se puede actualizar activo');
+      return { success: false, error: 'No hay usuario logueado' };
+    }
+    
+    const asset = state.assets.find((a) => a.id === assetId);
+    if (!asset) {
+      console.error('Activo no encontrado:', assetId);
+      return { success: false, error: 'Activo no encontrado' };
+    }
+    
+    // Validar que todos los brokers tengan datos válidos
+    const validBrokers = brokers.filter(b => 
+      b.broker && b.broker.trim() && 
+      parseFloat(b.quantity) > 0 && 
+      parseFloat(b.purchasePrice) > 0
+    );
+    
+    if (validBrokers.length === 0) {
+      return { success: false, error: 'Debe haber al menos un broker con cantidad y PPC válidos' };
+    }
+    
+    // Calcular cantidad total y PPC promedio ponderado
+    let totalQuantity = 0;
+    let totalValue = 0;
+    
+    validBrokers.forEach(broker => {
+      const qty = parseFloat(broker.quantity) || 0;
+      const ppc = parseFloat(broker.purchasePrice) || 0;
+      totalQuantity += qty;
+      totalValue += qty * ppc;
+    });
+    
+    const averagePPC = totalQuantity > 0 ? totalValue / totalQuantity : 0;
+    
+    // Actualizar en el estado local primero (optimistic update)
+    set((state) => ({
+      assets: state.assets.map((a) =>
+        a.id === assetId
+          ? { 
+              ...a, 
+              quantity: totalQuantity, 
+              purchasePrice: averagePPC,
+              brokers: validBrokers.map(b => ({
+                broker: b.broker.trim(),
+                quantity: parseFloat(b.quantity),
+                purchasePrice: parseFloat(b.purchasePrice),
+              }))
+            }
+          : a
+      ),
+    }));
+    
+    // Guardar en Supabase
+    try {
+      const result = await updateAssetInSupabase(
+        assetId,
+        { 
+          quantity: totalQuantity, 
+          purchasePrice: averagePPC,
+          brokers: validBrokers.map(b => ({
+            broker: b.broker.trim(),
+            quantity: parseFloat(b.quantity),
+            purchasePrice: parseFloat(b.purchasePrice),
+          }))
+        },
+        state.currentUserId
+      );
+      
+      if (result.error) {
+        console.error('Error al actualizar brokers en Supabase:', result.error);
+        // Revertir el cambio si falló
+        set((state) => ({
+          assets: state.assets.map((a) =>
+            a.id === assetId ? asset : a
+          ),
+        }));
+        return { success: false, error: result.error };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error inesperado al actualizar brokers:', error);
+      // Revertir el cambio si falló
+      set((state) => ({
+        assets: state.assets.map((a) =>
+          a.id === assetId ? asset : a
+        ),
+      }));
+      return { success: false, error: error.message || 'Error al actualizar brokers' };
+    }
+  },
+  
+  /**
    * AGREGAR UN NUEVO ACTIVO
    * 
    * Crea un nuevo activo y lo agrega al array.
