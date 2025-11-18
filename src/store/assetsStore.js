@@ -37,8 +37,6 @@ import {
   deleteAssetFromSupabase,
   syncAllAssetsToSupabase,
 } from '../lib/assetsService';
-// Importar datos iniciales desde un archivo JSON (solo como fallback si no hay usuario)
-import assetsData from '../mock-data/assets.json';
 
 /**
  * Store de activos con todas las funciones para gestionarlos

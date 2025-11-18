@@ -1,10 +1,13 @@
 -- ============================================
 -- AGREGAR COLUMNA is_price_estimated A LA TABLA EXISTENTE
 -- ============================================
--- Si ya tienes la tabla assets creada, ejecuta este script para agregar
--- la nueva columna is_price_estimated.
+-- IMPORTANTE: Este script solo es necesario si ya creaste la tabla assets
+-- ANTES de que se agregara la columna is_price_estimated al script principal.
+-- 
+-- Si estás creando la tabla por primera vez, usa supabase_migration.sql en su lugar,
+-- que ya incluye esta columna.
 --
--- Pasos:
+-- Si ya tienes la tabla assets creada sin esta columna, ejecuta este script:
 -- 1. Ve a Supabase Dashboard > SQL Editor
 -- 2. Copia y pega este script
 -- 3. Ejecuta la query
