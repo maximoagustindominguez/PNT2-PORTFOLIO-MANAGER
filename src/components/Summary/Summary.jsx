@@ -123,19 +123,25 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
       // Agrupar por la etiqueta normalizada (no por el tipo crudo)
       // Esto asegura que todos los activos del mismo tipo se agrupen correctamente
       if (!grouped.has(typeLabel)) {
-        grouped.set(typeLabel, { profit: 0, label: typeLabel });
+        grouped.set(typeLabel, { 
+          profit: 0, 
+          value: 0,  // Valor total del portfolio para este tipo
+          label: typeLabel 
+        });
       }
       
-      // Sumar la ganancia/pérdida
+      // Sumar la ganancia/pérdida y el valor total
       const group = grouped.get(typeLabel);
       group.profit += profit;
+      group.value += totalValue; // Sumar el valor total, no la ganancia/pérdida
     });
 
     // Convertir a array para el gráfico
+    // Usar el valor total del portfolio (value) en lugar de ganancia/pérdida absoluta
     return Array.from(grouped.values())
       .map((data) => ({
         name: data.label,
-        value: Math.abs(data.profit),
+        value: data.value, // Usar valor total del portfolio
         profit: data.profit,
         isProfit: data.profit >= 0,
       }))
@@ -346,19 +352,14 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
               
               <div className={styles.chartContainer} ref={chartRef}>
                 {profitByType.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={400}>
+                  <ResponsiveContainer width="100%" height={500}>
                     <PieChart>
                       <Pie
                         data={profitByType}
                         cx="50%"
                         cy="50%"
-                        labelLine={true}
-                        label={({ profit, percent }) => {
-                          const profitValue = profit >= 0 
-                            ? `+${CURRENCY_SYMBOL}${Math.abs(profit).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-                            : `-${CURRENCY_SYMBOL}${Math.abs(profit).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                          return `${profitValue}\n(${(percent * 100).toFixed(1)}%)`;
-                        }}
+                        labelLine={false}
+                        label={false}
                         outerRadius={120}
                         fill="#8884d8"
                         dataKey="value"
@@ -387,12 +388,20 @@ export const Summary = ({ totalValue, totalInvestment, totalProfit, assets }) =>
                       />
                       <Legend 
                         verticalAlign="bottom"
+                        align="center"
+                        wrapperStyle={{ paddingTop: '5px' }}
+                        layout="horizontal"
+                        iconType="circle"
+                        iconSize={12}
                         formatter={(value, entry) => {
                           const profit = entry.payload.profit;
+                          const totalValue = entry.payload.value;
+                          const totalPortfolioValue = profitByType.reduce((sum, item) => sum + item.value, 0);
+                          const percentOfTotal = totalPortfolioValue > 0 ? ((totalValue / totalPortfolioValue) * 100).toFixed(1) : '0.0';
                           const profitValue = profit >= 0 
                             ? `+${CURRENCY_SYMBOL}${Math.abs(profit).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
                             : `-${CURRENCY_SYMBOL}${Math.abs(profit).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                          return `${value}: ${profitValue}`;
+                          return `${value} (${percentOfTotal}%): ${profitValue}`;
                         }}
                       />
                     </PieChart>

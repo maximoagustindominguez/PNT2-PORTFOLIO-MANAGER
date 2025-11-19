@@ -15,8 +15,9 @@ export const Header = ({ onLogout, onAddAsset }) => {
     const loadLogo = async () => {
       // Lista de posibles nombres de archivo del logo (en orden de prioridad)
       const logoFiles = [
-        '@logo.jpg',
+        'Logo.jpg',
         'logo.jpg',
+        '@logo.jpg',
         'logo.png',
       ];
       
@@ -64,6 +65,9 @@ export const Header = ({ onLogout, onAddAsset }) => {
 
   return (
     <header className={styles.header}>
+      <div className={styles.disclaimer}>
+        Esta aplicación es un proyecto de estudio. No debe hacerse ningún uso útil de la misma, ni realizarse acciones en base a los datos que en ella se muestran. Los desarrolladores se desligan de modo absoluto de cualquier consecuencia surgida por el uso de esta aplicación, la cual no persigue fines comerciales ni se distribuye al público en general.
+      </div>
       {logoImage && (
         <div className={styles.logoContainer}>
           <img 
@@ -74,7 +78,7 @@ export const Header = ({ onLogout, onAddAsset }) => {
         </div>
       )}
       {onLogout && user && (
-        <>
+        <div className={styles.userActions} ref={dropdownRef}>
           {onAddAsset && (
             <button
               type="button"
@@ -99,14 +103,13 @@ export const Header = ({ onLogout, onAddAsset }) => {
               Agregar Asset
             </button>
           )}
-          <div className={styles.userActions} ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={styles.userButton}
-              aria-label={`Usuario: ${userName}`}
-              aria-expanded={isDropdownOpen}
-            >
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className={styles.userButton}
+            aria-label={`Usuario: ${userName}`}
+            aria-expanded={isDropdownOpen}
+          >
             <svg
               className={styles.userIcon}
               width="16"
@@ -141,7 +144,6 @@ export const Header = ({ onLogout, onAddAsset }) => {
             </div>
           )}
         </div>
-        </>
       )}
     </header>
   );

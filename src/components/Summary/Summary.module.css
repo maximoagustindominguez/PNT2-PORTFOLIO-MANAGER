@@ -172,11 +172,41 @@
 
 .chartContainer {
   width: 100%;
-  min-height: 400px;
+  min-height: 500px;
   margin-bottom: 1.5rem;
   padding: 1rem;
   background-color: rgba(255, 255, 255, 0.02);
   border-radius: 8px;
+}
+
+/* Estilos para la leyenda del gráfico de torta */
+.chartContainer :global(.recharts-legend-wrapper) {
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+.chartContainer :global(.recharts-default-legend) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  padding: 0.5rem 0;
+}
+
+.chartContainer :global(.recharts-legend-item) {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 !important;
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+}
+
+.chartContainer :global(.recharts-legend-item-text) {
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
 }
 
 .noData {

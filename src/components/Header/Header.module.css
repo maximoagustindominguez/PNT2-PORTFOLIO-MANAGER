@@ -12,6 +12,17 @@
   gap: 2rem;
 }
 
+.disclaimer {
+  position: absolute;
+  left: 2rem;
+  max-width: 300px;
+  color: #ef4444;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 400;
+  text-align: left;
+}
+
 .logoContainer {
   display: flex;
   align-items: center;
@@ -24,11 +35,11 @@
   width: auto;
   object-fit: contain;
   max-width: 350px;
+  background: transparent;
+  mix-blend-mode: normal;
 }
 
 .addAssetButton {
-  position: absolute;
-  left: 2rem;
   padding: 8px 16px;
   background: rgba(100, 108, 255, 0.1);
   border: 1px solid rgba(100, 108, 255, 0.3);
@@ -41,6 +52,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-right: 1rem;
 }
 
 .addAssetButton:hover {
@@ -56,8 +68,8 @@
   position: absolute;
   right: 2rem;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  align-items: center;
 }
 
 .userButton {
@@ -136,21 +148,29 @@
     gap: 1rem;
   }
 
+  .disclaimer {
+    position: relative;
+    left: auto;
+    max-width: 90%;
+    margin-bottom: 1rem;
+    font-size: 10px;
+  }
+
   .logo {
     height: 70px;
     max-width: 250px;
   }
 
   .addAssetButton {
-    position: relative;
-    left: auto;
-    margin-bottom: 0.5rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0;
   }
 
   .userActions {
     position: relative;
     right: auto;
-    align-items: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
   }
 
   .userButton {
