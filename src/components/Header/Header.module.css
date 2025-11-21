@@ -1,21 +1,25 @@
 .header {
-  padding: 2rem 0;
+  padding: 1.5rem 2rem 2rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   margin-bottom: 2rem;
   position: sticky;
   top: 0;
   background-color: #1a1a1a;
   z-index: 1000;
-  display: flex;
-  justify-content: center;
+}
+
+.headerContent {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
   align-items: center;
-  gap: 2rem;
+  gap: 1rem;
+  width: 100%;
 }
 
 .disclaimer {
-  position: absolute;
-  left: 2rem;
-  max-width: 300px;
+  justify-self: start;
+  align-self: center;
+  max-width: 320px;
   color: #ef4444;
   font-size: 11px;
   line-height: 1.4;
@@ -65,11 +69,13 @@
 }
 
 .userActions {
-  position: absolute;
-  right: 2rem;
+  justify-self: end;
+  align-self: center;
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .userButton {
@@ -142,17 +148,17 @@
 
 @media (max-width: 768px) {
   .header {
-    padding: 1.5rem 0;
+    padding: 1.5rem 1rem 1.75rem;
     margin-bottom: 1.5rem;
-    flex-direction: column;
-    gap: 1rem;
+  }
+
+  .headerContent {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 
   .disclaimer {
-    position: relative;
-    left: auto;
-    max-width: 90%;
-    margin-bottom: 1rem;
+    max-width: 100%;
     font-size: 10px;
   }
 
@@ -167,9 +173,7 @@
   }
 
   .userActions {
-    position: relative;
-    right: auto;
-    align-items: center;
+    justify-content: center;
     flex-wrap: wrap;
   }
 
