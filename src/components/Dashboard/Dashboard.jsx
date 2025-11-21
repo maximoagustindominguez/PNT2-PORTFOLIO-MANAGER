@@ -7,7 +7,7 @@ import { searchSymbols, detectAssetType, getAssetPrice } from '../../lib/finnhub
 import { CURRENCY_SYMBOL } from '../../constants';
 import styles from './Dashboard.module.css';
 
-export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onAddNewAsset, onUpdateBrokers, onOpenAddModal }) => {
+export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onAddNewAsset, onUpdateBrokers, onOpenAddModal, onModalClosed }) => {
   const [viewMode, setViewMode] = useState('cards');
   const { isOpen: showAddModal, openModal: openAddModal, closeModal: closeAddModal } = useModal(false);
   
@@ -182,6 +182,10 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
   const handleCloseModal = () => {
     resetModal();
     closeAddModal();
+    // Notificar al componente padre que el modal se cerró
+    if (onModalClosed) {
+      onModalClosed();
+    }
   };
 
   // Calcular PPC promedio ponderado

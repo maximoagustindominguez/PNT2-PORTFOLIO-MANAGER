@@ -60,6 +60,7 @@ export function Dashboard() {
         onAddNewAsset={addNewAsset}
         onUpdateBrokers={updateAssetBrokers}
         onOpenAddModal={triggerAddModal > 0 ? triggerAddModal : null}
+        onModalClosed={() => setTriggerAddModal(0)}
       />
         </>
       )}
