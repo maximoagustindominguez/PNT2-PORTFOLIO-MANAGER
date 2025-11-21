@@ -864,6 +864,7 @@ body.modal-open .card:hover {
 
 .quantityInputGroup .modalInput {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .quantityInputGroup .modalInput:focus {
