@@ -6,6 +6,12 @@
   transition: filter 0.2s ease, pointer-events 0s;
 }
 
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 body.modal-open #root {
   filter: grayscale(0.5) brightness(0.7);
   pointer-events: none;

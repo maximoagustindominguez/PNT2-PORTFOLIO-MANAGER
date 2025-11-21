@@ -27,6 +27,7 @@
 import { BrowserRouter } from 'react-router';
 import { AuthProvider } from './components/AuthProvider';
 import { AppRoutes } from './app/AppRoutes';
+import { Footer } from './components/Footer/Footer';
 import './App.css'; // Estilos específicos del componente App
 
 /**
@@ -39,8 +40,12 @@ function App() {
     <BrowserRouter>
       {/* AuthProvider escucha cambios en la sesión de Supabase */}
       <AuthProvider>
-        {/* AppRoutes define todas las rutas de la aplicación */}
-        <AppRoutes />
+        <div className="app-container">
+          {/* AppRoutes define todas las rutas de la aplicación */}
+          <AppRoutes />
+          {/* Footer aparece en todas las páginas */}
+          <Footer />
+        </div>
       </AuthProvider>
     </BrowserRouter>
   );
