@@ -69,6 +69,7 @@
 }
 
 .userActions {
+  position: relative;
   justify-self: end;
   align-self: center;
   display: flex;
@@ -111,7 +112,7 @@
 
 .dropdown {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 8px);
   right: 0;
   min-width: 200px;
   background: #1a1a1a;
@@ -120,7 +121,6 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   z-index: 100;
   overflow: hidden;
-  margin-top: 0;
 }
 
 .dropdownContent {
@@ -184,10 +184,9 @@
 
   .dropdown {
     position: absolute;
-    top: calc(100% + 4px);
+    top: calc(100% + 8px);
     right: 0;
     width: auto;
     min-width: 200px;
-    margin-top: 0;
   }
 }
