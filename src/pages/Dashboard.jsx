@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAssets } from '../hooks/useAssets';
 import { Header } from '../components/Header/Header';
 import { Summary } from '../components/Summary/Summary';
@@ -32,6 +32,11 @@ export function Dashboard() {
 
   // Estado para controlar la apertura del modal desde el header
   const [triggerAddModal, setTriggerAddModal] = useState(0);
+
+  // Asegurar que la página inicie en la parte superior al cargar
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <>

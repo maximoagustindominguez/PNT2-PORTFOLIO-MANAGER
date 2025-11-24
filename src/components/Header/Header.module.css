@@ -6,6 +6,7 @@
   top: 0;
   background-color: #1a1a1a;
   z-index: 1000;
+  overflow: visible;
 }
 
 .headerContent {
@@ -35,6 +36,8 @@
   flex-shrink: 0;
   grid-column: 2;
   justify-self: center;
+  overflow: visible;
+  position: relative;
 }
 
 .logo {
@@ -44,6 +47,8 @@
   max-width: 300px;
   background: transparent;
   mix-blend-mode: normal;
+  transform: scale(2);
+  transform-origin: center;
 }
 
 .addAssetButton {
@@ -169,6 +174,13 @@
   .logo {
     height: 80px;
     max-width: 250px;
+    transform: scale(2);
+    transform-origin: center;
+  }
+  
+  .logoContainer {
+    overflow: visible;
+    position: relative;
   }
 
   .addAssetButton {

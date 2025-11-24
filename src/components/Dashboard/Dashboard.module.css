@@ -1,12 +1,15 @@
 .dashboard {
   width: 100%;
+  margin-top: 0.5rem;
 }
 
 .controls {
   display: flex;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
   justify-content: center;
+  position: relative;
+  z-index: 10;
 }
 
 .controls button {
@@ -15,6 +18,9 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.7);
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 11;
+  pointer-events: auto;
 }
 
 .controls button:hover {

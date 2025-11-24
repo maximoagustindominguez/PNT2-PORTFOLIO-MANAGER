@@ -33,6 +33,9 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
   
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const controlsRef = useRef(null);
+  const cardsContainerRef = useRef(null);
+  const tableRef = useRef(null);
   const apiKey = import.meta.env.VITE_FINNHUB_API_KEY;
   
   // Debounce para la búsqueda (esperar 300ms después de que el usuario deje de escribir)
@@ -244,19 +247,87 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
     }
   };
 
+  // Función para hacer scroll hasta los controles
+  const scrollToControls = (currentMode) => {
+    if (!controlsRef.current) return;
+
+    // Esperar un momento para que el DOM se actualice después del cambio de vista
+    setTimeout(() => {
+      // Obtener la altura del header sticky
+      const header = document.querySelector('header');
+      const headerHeight = header ? header.offsetHeight : 0;
+
+      // Obtener la posición de los controles después de que el DOM se actualice
+      const controlsRect = controlsRef.current.getBoundingClientRect();
+      const controlsTop = controlsRect.top + window.scrollY;
+
+      // Calcular la posición objetivo (controles en la parte superior, considerando el header)
+      // Agregar un margen adicional para asegurar que los botones sean completamente clickeables
+      const extraMargin = 20;
+      const targetScroll = controlsTop - headerHeight - extraMargin;
+
+      // Obtener el contenedor de contenido (cards o tabla) usando el modo actual
+      const mode = currentMode || viewMode;
+      const contentContainer = mode === 'cards' ? cardsContainerRef.current : tableRef.current;
+      
+      if (contentContainer) {
+        // Obtener la posición del último elemento del contenido
+        const contentRect = contentContainer.getBoundingClientRect();
+        const contentBottom = contentRect.bottom + window.scrollY;
+        
+        // Calcular la altura visible de la ventana
+        const windowHeight = window.innerHeight;
+        
+        // Calcular la posición máxima de scroll (último elemento visible)
+        const maxScroll = contentBottom - windowHeight;
+        
+        // Scroll hasta la posición objetivo, pero no más allá del contenido disponible
+        const finalScroll = Math.min(targetScroll, maxScroll);
+        
+        window.scrollTo({
+          top: Math.max(0, finalScroll),
+          behavior: 'smooth'
+        });
+      } else {
+        // Si no hay contenedor de contenido, solo hacer scroll hasta los controles
+        window.scrollTo({
+          top: Math.max(0, targetScroll),
+          behavior: 'smooth'
+        });
+      }
+      
+      // Asegurar que los botones sean clickeables después del scroll
+      // Forzar un pequeño delay adicional para que el scroll termine
+      setTimeout(() => {
+        if (controlsRef.current) {
+          controlsRef.current.style.pointerEvents = 'auto';
+        }
+      }, 300);
+    }, 100);
+  };
+
+  // Manejar cambio de vista con scroll
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    // Usar setTimeout para asegurar que el DOM se actualice antes de hacer scroll
+    setTimeout(() => {
+      scrollToControls(mode);
+    }, 150);
+  };
+
   return (
     <div className={styles.dashboard}>
-      <div className={styles.controls}>
+      <div className={styles.controls} ref={controlsRef}>
         <button
           type="button"
-          onClick={() => setViewMode('cards')}
+          onClick={() => handleViewModeChange('cards')}
           className={viewMode === 'cards' ? styles.active : ''}
         >
           Activos en Cartera
         </button>
         <button
           type="button"
-          onClick={() => setViewMode('table')}
+          onClick={() => handleViewModeChange('table')}
           className={viewMode === 'table' ? styles.active : ''}
         >
           Posición Consolidada
@@ -265,7 +336,7 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
 
       {viewMode === 'cards' ? (
         <>
-          <div className={styles.cardsContainer}>
+          <div className={styles.cardsContainer} ref={cardsContainerRef}>
             {assets.map((asset) => (
                 <AssetCard
                   key={asset.id}
@@ -301,7 +372,9 @@ export const Dashboard = ({ assets, onAddQuantity, onReduceQuantity, onResetAsse
           </div>
         </>
       ) : (
-        <AssetTable assets={assets} />
+        <div ref={tableRef}>
+          <AssetTable assets={assets} />
+        </div>
       )}
 
       {showAddModal &&
