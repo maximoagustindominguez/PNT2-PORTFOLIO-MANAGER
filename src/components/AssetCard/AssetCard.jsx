@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { CURRENCY_SYMBOL } from '../../constants';
 import { useModal } from '../../hooks/useModal';
-import { getStockCandles, getTimeframeParams } from '../../lib/finnhub';
+import { getStockCandles, getTimeframeParams, getCompanyNews } from '../../lib/finnhub';
 import styles from './AssetCard.module.css';
 
 export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onUpdateBrokers }) => {
@@ -11,6 +11,7 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
   const { isOpen: showConfirmModal, openModal: openConfirmModal, closeModal: closeConfirmModal } = useModal(false);
   const { isOpen: showDetailModal, openModal: openDetailModal, closeModal: closeDetailModal } = useModal(false);
   const { isOpen: showChartModal, openModal: openChartModal, closeModal: closeChartModal } = useModal(false);
+  const { isOpen: showNewsModal, openModal: openNewsModal, closeModal: closeNewsModal } = useModal(false);
   const [modalBrokers, setModalBrokers] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // 'reset' o 'delete'
@@ -20,6 +21,12 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
   const [chartData, setChartData] = useState([]);
   const [isLoadingChart, setIsLoadingChart] = useState(false);
   const [chartError, setChartError] = useState(null);
+  
+  // Estados para las noticias
+  const [news, setNews] = useState([]);
+  const [isLoadingNews, setIsLoadingNews] = useState(false);
+  const [newsError, setNewsError] = useState(null);
+  
   const apiKey = import.meta.env.VITE_FINNHUB_API_KEY;
 
   const totalValue = asset.quantity * asset.currentPrice;
@@ -92,6 +99,47 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
 
     loadChartData();
   }, [showChartModal, chartTimeframe, asset.symbol, asset.type, apiKey]);
+
+  // Cargar noticias cuando se abre el modal de noticias
+  useEffect(() => {
+    if (!showNewsModal || !apiKey || !asset.symbol) return;
+
+    // Verificar si el tipo de activo soporta noticias
+    // Las noticias de Finnhub funcionan principalmente para acciones y ETFs
+    const supportsNews = asset.type === 'stock' || asset.type === 'accion' || asset.type === 'etf' || asset.type === 'fondo';
+
+    const loadNews = async () => {
+      setIsLoadingNews(true);
+      setNewsError(null);
+      setNews([]);
+
+      if (!supportsNews) {
+        setNewsError('Las noticias no están disponibles para este tipo de activo.');
+        setIsLoadingNews(false);
+        return;
+      }
+
+      try {
+        // Obtener noticias de los últimos 30 días
+        const result = await getCompanyNews(asset.symbol, apiKey);
+
+        if (result.error) {
+          setNewsError(result.error);
+          setNews([]);
+        } else if (result.data) {
+          setNews(result.data);
+        }
+      } catch (error) {
+        console.error('Error al cargar noticias:', error);
+        setNewsError('Error al cargar las noticias');
+        setNews([]);
+      } finally {
+        setIsLoadingNews(false);
+      }
+    };
+
+    loadNews();
+  }, [showNewsModal, asset.symbol, asset.type, apiKey]);
 
   // Calcular cantidad total y PPC promedio ponderado desde los brokers
   const calculateTotalsFromBrokers = () => {
@@ -366,7 +414,7 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
         <button
           type="button"
           className={styles.cardActionButton}
-          onClick={() => {}}
+          onClick={openNewsModal}
         >
           Noticias sobre este activo
         </button>
@@ -842,6 +890,106 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
                 <button
                   type="button"
                   onClick={closeChartModal}
+                  className={styles.modalAcceptBtn}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Modal de noticias */}
+      {showNewsModal &&
+        createPortal(
+          <div
+            className={styles.modalOverlay}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeNewsModal();
+              }
+            }}
+          >
+            <div
+              className={`${styles.modalContent} ${styles.newsModalContent}`}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>
+                  Noticias sobre {asset.name} ({asset.symbol})
+                </h3>
+                <button
+                  type="button"
+                  onClick={closeNewsModal}
+                  className={styles.closeButton}
+                  aria-label="Cerrar"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className={styles.newsContainer}>
+                {isLoadingNews ? (
+                  <div className={styles.newsLoading}>
+                    Cargando noticias...
+                  </div>
+                ) : newsError ? (
+                  <div className={styles.newsError}>
+                    {newsError}
+                  </div>
+                ) : news.length > 0 ? (
+                  <div className={styles.newsList}>
+                    {news.map((article) => (
+                      <div key={article.id} className={styles.newsItem}>
+                        {article.image && (
+                          <div className={styles.newsImage}>
+                            <img src={article.image} alt={article.headline} onError={(e) => { e.target.style.display = 'none'; }} />
+                          </div>
+                        )}
+                        <div className={styles.newsContent}>
+                          <div className={styles.newsHeader}>
+                            <span className={styles.newsSource}>{article.source}</span>
+                            <span className={styles.newsDate}>
+                              {article.datetime.toLocaleDateString('es-AR', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <h4 className={styles.newsHeadline}>{article.headline}</h4>
+                          {article.summary && (
+                            <p className={styles.newsSummary}>{article.summary}</p>
+                          )}
+                          {article.url && (
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.newsLink}
+                            >
+                              Leer más →
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={styles.newsError}>
+                    No se encontraron noticias para este activo.
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.modalButtons}>
+                <button
+                  type="button"
+                  onClick={closeNewsModal}
                   className={styles.modalAcceptBtn}
                 >
                   Cerrar

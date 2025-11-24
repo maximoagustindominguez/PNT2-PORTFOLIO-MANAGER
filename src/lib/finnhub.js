@@ -558,3 +558,75 @@ export const getTimeframeParams = (timeframe) => {
   return { from, to: now, resolution };
 };
 
+/**
+ * OBTENER NOTICIAS DE UNA EMPRESA/ACTIVO
+ * 
+ * Esta función obtiene noticias relevantes sobre un activo específico desde Finnhub.
+ * Las noticias se obtienen para un rango de fechas específico.
+ * 
+ * @param {string} symbol - Símbolo del activo (ej: "AAPL", "MSFT")
+ * @param {string} apiKey - Clave de API de Finnhub
+ * @param {string} fromDate - Fecha de inicio en formato YYYY-MM-DD (opcional, por defecto 7 días atrás)
+ * @param {string} toDate - Fecha de fin en formato YYYY-MM-DD (opcional, por defecto hoy)
+ * @returns {Promise<{data: Array|null, error: string|null}>}
+ *   - data: Array de objetos con noticias {id, headline, summary, source, url, image, datetime}
+ *   - error: Mensaje de error si falló
+ */
+export const getCompanyNews = async (symbol, apiKey, fromDate = null, toDate = null) => {
+  if (!apiKey) {
+    return { data: null, error: 'API key de Finnhub no configurada' };
+  }
+
+  if (!symbol) {
+    return { data: null, error: 'Símbolo requerido' };
+  }
+
+  try {
+    // Si no se proporcionan fechas, usar los últimos 7 días
+    const today = new Date();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    const from = fromDate || sevenDaysAgo.toISOString().split('T')[0]; // YYYY-MM-DD
+    const to = toDate || today.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const response = await fetch(
+      `${FINNHUB_API_URL}/company-news?symbol=${encodeURIComponent(symbol)}&from=${from}&to=${to}&token=${apiKey}`
+    );
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return { data: null, error: 'Rate limit excedido. Por favor intenta más tarde.' };
+      }
+      if (response.status === 404) {
+        return { data: null, error: 'No se encontraron noticias para este activo.' };
+      }
+      return { data: null, error: `Error al obtener noticias: ${response.status}` };
+    }
+
+    const data = await response.json();
+
+    // Si la respuesta es un array vacío o null
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return { data: [], error: null };
+    }
+
+    // Formatear las noticias para que sean más fáciles de usar
+    const formattedNews = data.map((news) => ({
+      id: news.id || news.url,
+      headline: news.headline || 'Sin título',
+      summary: news.summary || '',
+      source: news.source || 'Fuente desconocida',
+      url: news.url || '',
+      image: news.image || '',
+      datetime: news.datetime ? new Date(news.datetime * 1000) : new Date(),
+      category: news.category || 'general',
+    }));
+
+    return { data: formattedNews, error: null };
+  } catch (error) {
+    console.error('Error al obtener noticias:', error);
+    return { data: null, error: error.message || 'Error al obtener noticias' };
+  }
+};
+
