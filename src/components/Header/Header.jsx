@@ -15,10 +15,11 @@ export const Header = ({ onLogout, onAddAsset }) => {
     const loadLogo = async () => {
       // Lista de posibles nombres de archivo del logo (en orden de prioridad)
       const logoFiles = [
+        'Logo.png',
+        'logo.png',
         'Logo.jpg',
         'logo.jpg',
         '@logo.jpg',
-        'logo.png',
       ];
       
       for (const fileName of logoFiles) {
