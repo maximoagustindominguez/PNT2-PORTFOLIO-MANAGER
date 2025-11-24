@@ -53,6 +53,61 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
     return asset.type === 'crypto' || asset.type === 'criptomoneda' ? '0.00000001' : '1';
   };
 
+  // Función para generar datos de ejemplo basados en el precio actual
+  const generateSampleChartData = (currentPrice, timeframe) => {
+    const now = new Date();
+    const dataPoints = 30; // Número de puntos en el gráfico de ejemplo
+    const sampleData = [];
+    
+    // Calcular días hacia atrás según el timeframe
+    let daysBack = 30;
+    switch (timeframe) {
+      case '1D': daysBack = 1; break;
+      case '1W': daysBack = 7; break;
+      case '1M': daysBack = 30; break;
+      case '3M': daysBack = 90; break;
+      case '6M': daysBack = 180; break;
+      case '1Y': daysBack = 365; break;
+      case 'ALL': daysBack = 365 * 2; break;
+      default: daysBack = 30;
+    }
+    
+    // Generar variación aleatoria pero realista alrededor del precio actual
+    // El precio final será el precio actual
+    const baseVariation = currentPrice * 0.1; // 10% de variación
+    let previousPrice = currentPrice * (0.85 + Math.random() * 0.15); // Empezar entre 85% y 100% del precio actual
+    
+    for (let i = dataPoints - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - (daysBack * (i / (dataPoints - 1))));
+      
+      // Crear una tendencia hacia el precio actual
+      const progress = 1 - (i / (dataPoints - 1)); // 0 al inicio, 1 al final
+      const targetPrice = currentPrice;
+      const variation = (Math.random() - 0.5) * baseVariation * (1 - progress * 0.5); // Menos variación cerca del final
+      const price = previousPrice + (targetPrice - previousPrice) * 0.1 + variation;
+      
+      previousPrice = price;
+      
+      sampleData.push({
+        date: date.toLocaleDateString('es-AR', {
+          month: 'short',
+          day: 'numeric',
+          ...(timeframe === '1Y' || timeframe === 'ALL' ? { year: 'numeric' } : {})
+        }),
+        value: Math.max(0.01, price), // Asegurar que el precio sea positivo
+        fullDate: date,
+      });
+    }
+    
+    // Asegurar que el último punto sea exactamente el precio actual
+    if (sampleData.length > 0) {
+      sampleData[sampleData.length - 1].value = currentPrice;
+    }
+    
+    return sampleData;
+  };
+
   // Cargar datos del gráfico cuando cambia la temporalidad o se abre el modal
   useEffect(() => {
     if (!showChartModal || !apiKey || !asset.symbol) return;
@@ -74,7 +129,9 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
 
         if (result.error) {
           setChartError(result.error);
-          setChartData([]);
+          // Generar datos de ejemplo cuando hay error
+          const sampleData = generateSampleChartData(asset.currentPrice, chartTimeframe);
+          setChartData(sampleData);
         } else if (result.data) {
           // Formatear datos para el gráfico
           const formattedData = result.data.map(item => ({
@@ -91,14 +148,16 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
       } catch (error) {
         console.error('Error al cargar datos del gráfico:', error);
         setChartError('Error al cargar los datos del gráfico');
-        setChartData([]);
+        // Generar datos de ejemplo cuando hay error
+        const sampleData = generateSampleChartData(asset.currentPrice, chartTimeframe);
+        setChartData(sampleData);
       } finally {
         setIsLoadingChart(false);
       }
     };
 
     loadChartData();
-  }, [showChartModal, chartTimeframe, asset.symbol, asset.type, apiKey]);
+  }, [showChartModal, chartTimeframe, asset.symbol, asset.type, apiKey, asset.currentPrice]);
 
   // Cargar noticias cuando se abre el modal de noticias
   useEffect(() => {
@@ -834,51 +893,59 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
                   <div className={styles.chartLoading}>
                     Cargando datos del gráfico...
                   </div>
-                ) : chartError ? (
-                  <div className={styles.chartError}>
-                    {chartError}
-                  </div>
                 ) : chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={400}>
-                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                      <XAxis 
-                        dataKey="date" 
-                        stroke="rgba(255, 255, 255, 0.6)"
-                        style={{ fontSize: '0.75rem' }}
-                      />
-                      <YAxis 
-                        stroke="rgba(255, 255, 255, 0.6)"
-                        style={{ fontSize: '0.75rem' }}
-                        tickFormatter={(value) => `${CURRENCY_SYMBOL}${value.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#2a2a2a',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          borderRadius: '6px',
-                          color: 'rgba(255, 255, 255, 0.9)',
-                        }}
-                        formatter={(value) => [
-                          `${CURRENCY_SYMBOL}${value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-                          'Precio'
-                        ]}
-                        labelFormatter={(label) => `Fecha: ${label}`}
-                      />
-                      <Legend 
-                        wrapperStyle={{ color: 'rgba(255, 255, 255, 0.7)' }}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="value" 
-                        stroke="#646cff" 
-                        strokeWidth={2}
-                        dot={false}
-                        activeDot={{ r: 6, fill: '#646cff' }}
-                        name="Precio de Cierre"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <>
+                    {chartError && (
+                      <div className={styles.chartErrorWarning}>
+                        {chartError}
+                        <br />
+                        <span className={styles.chartSampleNote}>
+                          Mostrando gráfico de ejemplo con el precio actual como referencia.
+                        </span>
+                      </div>
+                    )}
+                    <ResponsiveContainer width="100%" height={400}>
+                      <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="rgba(255, 255, 255, 0.6)"
+                          style={{ fontSize: '0.75rem' }}
+                        />
+                        <YAxis 
+                          stroke="rgba(255, 255, 255, 0.6)"
+                          style={{ fontSize: '0.75rem' }}
+                          tickFormatter={(value) => `${CURRENCY_SYMBOL}${value.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: '#2a2a2a',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '6px',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                          }}
+                          formatter={(value) => [
+                            `${CURRENCY_SYMBOL}${value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+                            chartError ? 'Precio (Ejemplo)' : 'Precio'
+                          ]}
+                          labelFormatter={(label) => `Fecha: ${label}`}
+                        />
+                        <Legend 
+                          wrapperStyle={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="value" 
+                          stroke={chartError ? "#f59e0b" : "#646cff"}
+                          strokeWidth={2}
+                          strokeDasharray={chartError ? "5 5" : "0"}
+                          dot={false}
+                          activeDot={{ r: 6, fill: chartError ? "#f59e0b" : "#646cff" }}
+                          name={chartError ? "Precio (Ejemplo)" : "Precio de Cierre"}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </>
                 ) : (
                   <div className={styles.chartError}>
                     No hay datos disponibles para mostrar

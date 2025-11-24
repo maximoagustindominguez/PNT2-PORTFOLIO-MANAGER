@@ -477,7 +477,48 @@ export const getStockCandles = async (symbol, resolution, from, to, apiKey, type
       if (response.status === 429) {
         return { data: null, error: 'Rate limit excedido. Por favor intenta más tarde.' };
       }
-      return { data: null, error: `Error al obtener datos: ${response.status}` };
+      
+      // Intentar obtener más información del error
+      let errorMessage = `Error al obtener datos: ${response.status}`;
+      let errorDetails = null;
+      
+      try {
+        const errorData = await response.json();
+        errorDetails = errorData;
+        if (errorData.error || errorData.message) {
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        }
+      } catch (e) {
+        // Si no se puede parsear el JSON, intentar leer como texto
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            errorMessage = errorText;
+          }
+        } catch (e2) {
+          // Si no se puede leer, usar el mensaje por defecto
+        }
+      }
+      
+      // Mensaje específico para 403 (Forbidden)
+      if (response.status === 403) {
+        // Verificar si es un problema de plan o de autenticación
+        if (errorDetails?.error?.includes('subscription') || errorDetails?.error?.includes('plan')) {
+          errorMessage = 'Los datos históricos de gráficos requieren un plan premium de Finnhub. El plan gratuito no incluye acceso a datos de candlestick.';
+        } else {
+          errorMessage = 'Acceso denegado. Verifica que tu API key de Finnhub tenga permisos para acceder a datos históricos. El plan gratuito puede tener limitaciones.';
+        }
+      }
+      
+      console.error('Error al obtener datos históricos:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorDetails,
+        symbol: finnhubSymbol,
+        type,
+      });
+      
+      return { data: null, error: errorMessage };
     }
 
     const result = await response.json();
