@@ -39,6 +39,7 @@
   flex-shrink: 0;
   grid-column: 2;
   justify-self: center;
+  align-self: center;
   overflow: visible;
   position: relative;
   height: 60px;
@@ -46,15 +47,21 @@
 }
 
 .logo {
-  height: 60px;
+  height: auto;
+  max-height: 60px;
   width: auto;
-  object-fit: contain;
   max-width: 300px;
+  object-fit: contain;
   background: transparent;
   mix-blend-mode: normal;
-  transform: scale(2);
-  transform-origin: center;
   display: block;
+  transform: scale(4);
+  transform-origin: center;
+}
+
+.logoPlaceholder {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
 }
 
 .addAssetButton {
@@ -178,11 +185,10 @@
   }
 
   .logo {
-    height: 40px;
+    max-height: 40px;
     max-width: 250px;
-    transform: scale(2);
+    transform: scale(4);
     transform-origin: center;
-    display: block;
   }
   
   .logoContainer {

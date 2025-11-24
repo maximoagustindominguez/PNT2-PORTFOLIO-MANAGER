@@ -4,39 +4,14 @@ import { useSessionStore } from '../../store/sessionStore';
 import { UserProfile } from '../UserProfile/UserProfile';
 import styles from './Header.module.css';
 
+// Importar el logo estáticamente - Vite procesará esta ruta automáticamente
+import logoImageSrc from '../../assets/images/Logo.png';
+
 export const Header = ({ onLogout, onAddAsset }) => {
   const user = useSessionStore((state) => state.user);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [logoImage, setLogoImage] = useState(null);
+  const [logoError, setLogoError] = useState(false);
   const dropdownRef = useRef(null);
-  
-  // Cargar el logo dinámicamente
-  useEffect(() => {
-    const loadLogo = async () => {
-      // Lista de posibles nombres de archivo del logo (en orden de prioridad)
-      const logoFiles = [
-        'Logo.png',
-        'logo.png',
-        'Logo.jpg',
-        'logo.jpg',
-        '@logo.jpg',
-      ];
-      
-      for (const fileName of logoFiles) {
-        try {
-          // Importación dinámica con Vite
-          const logoModule = await import(`../../assets/images/${fileName}?url`);
-          setLogoImage(logoModule.default);
-          break; // Si se carga exitosamente, salir del loop
-        } catch (error) {
-          // Si este archivo no existe, intentar el siguiente
-          continue;
-        }
-      }
-    };
-    
-    loadLogo();
-  }, []);
   
   // Obtener nombre del usuario: primero custom name, luego email
   const customName = user?.user_metadata?.custom_name;
@@ -70,15 +45,22 @@ export const Header = ({ onLogout, onAddAsset }) => {
         <div className={styles.disclaimer}>
           Esta aplicación es un proyecto de estudio. No debe hacerse ningún uso útil de la misma, ni realizarse acciones en base a los datos que en ella se muestran. Los desarrolladores se desligan de modo absoluto de cualquier consecuencia surgida por el uso de esta aplicación, la cual no persigue fines comerciales ni se distribuye al público en general.
         </div>
-        {logoImage && (
-          <div className={styles.logoContainer}>
+        <div className={styles.logoContainer}>
+          {logoImageSrc && !logoError ? (
             <img 
-              src={logoImage} 
+              src={logoImageSrc} 
               alt="Portfolio Manager - ORT Escuela Técnica Buenos Aires" 
               className={styles.logo}
+              onError={(e) => {
+                console.error('Error al cargar el logo:', e);
+                setLogoError(true);
+                e.target.style.display = 'none';
+              }}
             />
-          </div>
-        )}
+          ) : (
+            <div className={styles.logoPlaceholder}>Logo</div>
+          )}
+        </div>
         {onLogout && user && (
           <div className={styles.userActions} ref={dropdownRef}>
             {onAddAsset && (
