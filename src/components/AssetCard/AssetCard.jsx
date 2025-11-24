@@ -114,7 +114,7 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
       setNews([]);
 
       if (!supportsNews) {
-        setNewsError('Las noticias no están disponibles para este tipo de activo.');
+        setNewsError('Por el momento solo hay noticias para los activos de tipo ETF y Acciones.');
         setIsLoadingNews(false);
         return;
       }

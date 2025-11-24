@@ -67,7 +67,8 @@ export const useAssetsStore = create((set, get) => ({
   loadAssets: async (userId) => {
     if (!userId) {
       console.warn('⚠️ No se proporcionó userId para cargar activos');
-      set({ assets: [], currentUserId: null });
+      // No limpiar activos existentes si no hay userId, solo no cargar nuevos
+      set({ currentUserId: null });
       return { success: false, error: 'ID de usuario no proporcionado' };
     }
 
@@ -78,7 +79,9 @@ export const useAssetsStore = create((set, get) => ({
       
       if (result.error) {
         console.error('Error al cargar activos:', result.error);
-        set({ assets: [], isLoading: false });
+        // No limpiar activos existentes si hay error, mantener los que ya están
+        // Solo actualizar el estado de carga
+        set({ isLoading: false });
         return { success: false, error: result.error };
       }
 
@@ -90,7 +93,8 @@ export const useAssetsStore = create((set, get) => ({
       return { success: true };
     } catch (error) {
       console.error('Error inesperado al cargar activos:', error);
-      set({ assets: [], isLoading: false });
+      // No limpiar activos existentes si hay error, mantener los que ya están
+      set({ isLoading: false });
       return { success: false, error: error.message || 'Error al cargar activos' };
     }
   },
