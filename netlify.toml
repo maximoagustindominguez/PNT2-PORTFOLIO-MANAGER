@@ -1,12 +1,45 @@
+# ============================================
+# CONFIGURACIÓN DE NETLIFY
+# ============================================
+# Este archivo configura cómo Netlify despliega y construye la aplicación.
+# Netlify es una plataforma de hosting que permite desplegar aplicaciones web
+# de forma automática desde un repositorio Git.
+#
+# Documentación: https://docs.netlify.com/configure-builds/file-based-configuration/
+
+# ============================================
+# CONFIGURACIÓN DE BUILD (CONSTRUCCIÓN)
+# ============================================
 [build]
+  # Comando que Netlify ejecutará para construir la aplicación
+  # Este comando genera los archivos estáticos en la carpeta 'dist'
   command = "npm run build"
+  
+  # Carpeta que contiene los archivos estáticos generados después del build
+  # Netlify servirá estos archivos como la aplicación web
   publish = "dist"
 
+# ============================================
+# VARIABLES DE ENTORNO PARA EL BUILD
+# ============================================
 [build.environment]
+  # Versión de Node.js que Netlify usará para ejecutar el build
+  # Node 20 es una versión LTS (Long Term Support) estable y recomendada
   NODE_VERSION = "20"
 
+# ============================================
+# REDIRECCIONES (SPA - Single Page Application)
+# ============================================
+# Las aplicaciones React son SPAs: toda la navegación se maneja en el cliente.
+# Sin estas redirecciones, si un usuario accede directamente a una ruta como
+# /dashboard, Netlify intentaría buscar un archivo /dashboard/index.html
+# que no existe, y devolvería un error 404.
+#
+# Esta configuración redirige TODAS las rutas (*) a /index.html con status 200,
+# permitiendo que React Router maneje la navegación correctamente.
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  from = "/*"              # Todas las rutas
+  to = "/index.html"       # Redirigir a index.html
+  status = 200             # Status 200 (OK) en lugar de 301/302 (redirect)
+                          # Esto es importante para SPAs porque mantiene la URL original
 
