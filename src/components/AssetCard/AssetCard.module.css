@@ -1254,3 +1254,114 @@ body.modal-open .card:hover {
     gap: 1rem;
   }
 }
+
+/* Estilos para el modal de alertas */
+.alertInfoBox {
+  background: rgba(100, 108, 255, 0.1);
+  border: 1px solid rgba(100, 108, 255, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 1rem 0;
+}
+
+.alertInfoText {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.alertCount {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.alertsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.alertItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 12px 16px;
+  transition: background-color 0.2s;
+}
+
+.alertItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.alertItemContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.alertPriceInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.alertPrice {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.alertDirection {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+.alertDate {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+.deleteAlertButton {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  color: #ef4444;
+  font-size: 20px;
+  font-weight: 600;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+  line-height: 1;
+}
+
+.deleteAlertButton:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.deleteAlertButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.alertLimitReached {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 1rem 0;
+  color: #ef4444;
+  font-size: 14px;
+  text-align: center;
+}

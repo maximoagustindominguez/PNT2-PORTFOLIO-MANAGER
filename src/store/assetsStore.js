@@ -67,21 +67,24 @@ export const useAssetsStore = create((set, get) => ({
   loadAssets: async (userId) => {
     if (!userId) {
       console.warn('⚠️ No se proporcionó userId para cargar activos');
-      // No limpiar activos existentes si no hay userId, solo no cargar nuevos
-      set({ currentUserId: null });
+      // Limpiar activos existentes si no hay userId
+      set({ assets: [], currentUserId: null });
       return { success: false, error: 'ID de usuario no proporcionado' };
     }
 
     set({ isLoading: true, currentUserId: userId });
+    
+    // IMPORTANTE: Limpiar assets existentes antes de cargar nuevos
+    // Esto previene que se muestren assets antiguos o eliminados
+    set({ assets: [] });
 
     try {
       const result = await loadAssetsFromSupabase(userId);
       
       if (result.error) {
         console.error('Error al cargar activos:', result.error);
-        // No limpiar activos existentes si hay error, mantener los que ya están
-        // Solo actualizar el estado de carga
-        set({ isLoading: false });
+        // Mantener array vacío si hay error
+        set({ assets: [], isLoading: false });
         return { success: false, error: result.error };
       }
 
@@ -89,12 +92,12 @@ export const useAssetsStore = create((set, get) => ({
       const assets = result.data || [];
       set({ assets, isLoading: false });
       
-      console.log(`✅ Cargados ${assets.length} activos desde Supabase`);
+      console.log(`✅ Cargados ${assets.length} activos desde Supabase (limpiados antes de cargar)`);
       return { success: true };
     } catch (error) {
       console.error('Error inesperado al cargar activos:', error);
-      // No limpiar activos existentes si hay error, mantener los que ya están
-      set({ isLoading: false });
+      // Mantener array vacío si hay error
+      set({ assets: [], isLoading: false });
       return { success: false, error: error.message || 'Error al cargar activos' };
     }
   },

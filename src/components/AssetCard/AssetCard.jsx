@@ -4,6 +4,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { CURRENCY_SYMBOL } from '../../constants';
 import { useModal } from '../../hooks/useModal';
 import { getStockCandles, getTimeframeParams, getCompanyNews } from '../../lib/finnhub';
+import { useAlertsStore } from '../../store/alertsStore';
+import { useSessionStore } from '../../store/sessionStore';
 import styles from './AssetCard.module.css';
 
 export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset, onDeleteAsset, onUpdateBrokers }) => {
@@ -12,6 +14,8 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
   const { isOpen: showDetailModal, openModal: openDetailModal, closeModal: closeDetailModal } = useModal(false);
   const { isOpen: showChartModal, openModal: openChartModal, closeModal: closeChartModal } = useModal(false);
   const { isOpen: showNewsModal, openModal: openNewsModal, closeModal: closeNewsModal } = useModal(false);
+  const { isOpen: showAnalysisModal, openModal: openAnalysisModal, closeModal: closeAnalysisModal } = useModal(false);
+  const { isOpen: showAlertModal, openModal: openAlertModal, closeModal: closeAlertModal } = useModal(false);
   const [modalBrokers, setModalBrokers] = useState([]);
   const [showMenu, setShowMenu] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null); // 'reset' o 'delete'
@@ -26,6 +30,51 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
   const [news, setNews] = useState([]);
   const [isLoadingNews, setIsLoadingNews] = useState(false);
   const [newsError, setNewsError] = useState(null);
+  
+  // Estados para la alerta
+  const [alertPrice, setAlertPrice] = useState('');
+  const [isSavingAlert, setIsSavingAlert] = useState(false);
+  const [alertError, setAlertError] = useState(null);
+  const [isDeletingAlert, setIsDeletingAlert] = useState(null);
+  const { addAlert, deactivateAlert, alerts, loadAlerts } = useAlertsStore();
+  const user = useSessionStore((state) => state.user);
+  
+  // Filtrar alertas del asset actual
+  // Asegurar que la comparación sea correcta convirtiendo ambos a número
+  const assetAlerts = alerts.filter(alert => {
+    const alertAssetId = typeof alert.assetId === 'string' ? parseInt(alert.assetId, 10) : Number(alert.assetId);
+    const currentAssetId = typeof asset.id === 'string' ? parseInt(asset.id, 10) : Number(asset.id);
+    const matches = alertAssetId === currentAssetId;
+    
+    return matches;
+  });
+  const MAX_ALERTS_PER_ASSET = 5;
+  
+  // Recargar alertas desde la base de datos cuando se abre el modal
+  useEffect(() => {
+    if (showAlertModal && user?.id) {
+      console.log('🔄 Recargando alertas al abrir el modal...');
+      console.log('  - Asset ID:', asset.id, 'Tipo:', typeof asset.id);
+      loadAlerts(user.id).then((result) => {
+        const loadedAlerts = useAlertsStore.getState().alerts;
+        console.log(`✅ Alertas recargadas: ${loadedAlerts.length} totales`);
+        console.log('  - Alertas cargadas:', loadedAlerts.map(a => ({ 
+          id: a.id, 
+          assetId: a.assetId, 
+          assetSymbol: a.assetSymbol,
+          alertPrice: a.alertPrice 
+        })));
+        
+        // Filtrar alertas para este asset específico
+        const filtered = loadedAlerts.filter(alert => {
+          const alertAssetId = typeof alert.assetId === 'string' ? parseInt(alert.assetId, 10) : Number(alert.assetId);
+          const currentAssetId = typeof asset.id === 'string' ? parseInt(asset.id, 10) : Number(asset.id);
+          return alertAssetId === currentAssetId;
+        });
+        console.log(`  - Alertas filtradas para este asset: ${filtered.length}`);
+      });
+    }
+  }, [showAlertModal, user?.id, loadAlerts, asset.id]);
   
   const apiKey = import.meta.env.VITE_FINNHUB_API_KEY;
 
@@ -326,6 +375,110 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
     };
   }, [showMenu]);
 
+  // Resetear el precio de alerta cuando se abre la modal
+  useEffect(() => {
+    if (showAlertModal) {
+      setAlertPrice('');
+      setAlertError(null);
+      // Recargar alertas cuando se abre el modal para asegurar que estén actualizadas
+      if (user?.id) {
+        useAlertsStore.getState().loadAlerts(user.id);
+      }
+    }
+  }, [showAlertModal, user?.id]);
+
+  // Manejar eliminación de alerta
+  const handleDeleteAlert = async (alertId) => {
+    if (!user?.id) {
+      setAlertError('Debe estar autenticado para eliminar una alerta');
+      return;
+    }
+
+    setIsDeletingAlert(alertId);
+    setAlertError(null);
+
+    try {
+      const result = await deactivateAlert(alertId, user.id);
+
+      if (!result.success) {
+        setAlertError(result.error || 'Error al eliminar la alerta');
+      } else {
+        // Recargar alertas después de eliminar para asegurar sincronización
+        await loadAlerts(user.id);
+      }
+    } catch (error) {
+      console.error('Error al eliminar alerta:', error);
+      setAlertError('Error inesperado al eliminar la alerta');
+    } finally {
+      setIsDeletingAlert(null);
+    }
+  };
+
+  // Manejar el envío del formulario de alerta
+  const handleAlertSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!user?.id) {
+      setAlertError('Debe estar autenticado para crear una alerta');
+      return;
+    }
+
+    // Validar límite de alertas
+    if (assetAlerts.length >= MAX_ALERTS_PER_ASSET) {
+      setAlertError(`No se pueden crear más de ${MAX_ALERTS_PER_ASSET} alertas por asset`);
+      return;
+    }
+
+    const price = parseFloat(alertPrice);
+    
+    if (isNaN(price) || price <= 0) {
+      setAlertError('El valor de alerta debe ser un número mayor a 0');
+      return;
+    }
+
+    setIsSavingAlert(true);
+    setAlertError(null);
+
+    try {
+      // Asegurar que asset.id sea un número válido
+      const assetId = typeof asset.id === 'string' ? parseInt(asset.id, 10) : Number(asset.id);
+      
+      if (isNaN(assetId) || assetId <= 0) {
+        setAlertError('Error: ID de asset inválido');
+        setIsSavingAlert(false);
+        return;
+      }
+
+      console.log('Creando alerta - Asset ID:', assetId, 'Tipo:', typeof assetId);
+      console.log('Asset completo:', asset);
+      console.log('Precio inicial:', asset.currentPrice, 'Precio de alerta:', price);
+
+      const result = await addAlert({
+        assetId: assetId,
+        assetName: asset.name,
+        assetSymbol: asset.symbol,
+        initialPrice: asset.currentPrice, // Precio actual cuando se crea la alerta
+        alertPrice: price, // Precio objetivo configurado por el usuario
+      }, user.id);
+
+      if (result.success) {
+        setAlertPrice('');
+        setAlertError(null);
+        // Recargar alertas para asegurar sincronización
+        if (user?.id) {
+          await loadAlerts(user.id);
+        }
+      } else {
+        setAlertError(result.error || 'Error al crear la alerta');
+      }
+    } catch (error) {
+      console.error('Error al crear alerta:', error);
+      setAlertError('Error inesperado al crear la alerta');
+    } finally {
+      setIsSavingAlert(false);
+    }
+  };
+
 
 
   return (
@@ -466,7 +619,7 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
         <button
           type="button"
           className={styles.cardActionButton}
-          onClick={() => {}}
+          onClick={openAnalysisModal}
         >
           Analizar este activo
         </button>
@@ -480,7 +633,7 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
         <button
           type="button"
           className={styles.cardActionButton}
-          onClick={() => {}}
+          onClick={openAlertModal}
         >
           Programar alerta
         </button>
@@ -1062,6 +1215,257 @@ export const AssetCard = ({ asset, onAddQuantity, onReduceQuantity, onResetAsset
                   Cerrar
                 </button>
               </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Modal de análisis */}
+      {showAnalysisModal &&
+        createPortal(
+          <div
+            className={styles.modalOverlay}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeAnalysisModal();
+              }
+            }}
+          >
+            <div
+              className={styles.modalContent}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>
+                  Análisis de {asset.name} ({asset.symbol})
+                </h3>
+                <button
+                  type="button"
+                  onClick={closeAnalysisModal}
+                  className={styles.closeButton}
+                  aria-label="Cerrar"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className={styles.newsError} style={{ margin: '2rem 0', textAlign: 'center' }}>
+                El agente de análisis con IA aún no se encuentra implementado para esta versión.
+              </div>
+
+              <div className={styles.modalButtons}>
+                <button
+                  type="button"
+                  onClick={closeAnalysisModal}
+                  className={styles.modalAcceptBtn}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* Modal de alerta */}
+      {showAlertModal &&
+        createPortal(
+          <div
+            className={styles.modalOverlay}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeAlertModal();
+              }
+            }}
+          >
+            <div
+              className={styles.modalContent}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
+                <h3 className={styles.modalTitle}>
+                  Programar Alerta - {asset.name} ({asset.symbol})
+                </h3>
+                <button
+                  type="button"
+                  onClick={closeAlertModal}
+                  className={styles.closeButton}
+                  aria-label="Cerrar"
+                >
+                  ×
+                </button>
+              </div>
+
+              <form onSubmit={handleAlertSubmit} className={styles.modalForm}>
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalLabel}>Ticker</label>
+                  <div className={styles.modalCurrentValue}>{asset.symbol}</div>
+                </div>
+
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalLabel}>Nombre del Asset</label>
+                  <div className={styles.modalCurrentValue}>{asset.name}</div>
+                </div>
+
+                <div className={styles.modalFormGroup}>
+                  <label className={styles.modalLabel}>Valor Actual</label>
+                  <div className={styles.modalCurrentValue}>
+                    {CURRENCY_SYMBOL}
+                    {asset.currentPrice.toLocaleString('es-AR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </div>
+                </div>
+
+                {/* Información sobre límite de alertas */}
+                <div className={styles.alertInfoBox}>
+                  <p className={styles.alertInfoText}>
+                    Puedes programar hasta {MAX_ALERTS_PER_ASSET} alertas por asset.
+                    {assetAlerts.length > 0 && (
+                      <span className={styles.alertCount}>
+                        {' '}Actualmente tienes {assetAlerts.length} de {MAX_ALERTS_PER_ASSET} alertas programadas.
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {/* Lista de alertas existentes */}
+                {assetAlerts.length > 0 && (
+                  <div className={styles.modalFormGroup}>
+                    <label className={styles.modalLabel}>Alertas Programadas</label>
+                    <div className={styles.alertsList}>
+                      {assetAlerts.map((alert) => {
+                        const isUpward = alert.alertPrice > alert.initialPrice;
+                        return (
+                          <div key={alert.id} className={styles.alertItem}>
+                            <div className={styles.alertItemContent}>
+                              <div className={styles.alertPriceInfo}>
+                                <span className={styles.alertPrice}>
+                                  {CURRENCY_SYMBOL}
+                                  {alert.alertPrice.toLocaleString('es-AR', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </span>
+                                <span className={styles.alertDirection}>
+                                  {isUpward ? '↑' : '↓'} Desde {CURRENCY_SYMBOL}
+                                  {alert.initialPrice.toLocaleString('es-AR', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </span>
+                              </div>
+                              <span className={styles.alertDate}>
+                                Creada: {new Date(alert.createdAt).toLocaleDateString('es-AR', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </span>
+                            </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAlert(alert.id)}
+                            className={styles.deleteAlertButton}
+                            disabled={isDeletingAlert === alert.id}
+                            aria-label="Eliminar alerta"
+                          >
+                            {isDeletingAlert === alert.id ? 'Eliminando...' : '×'}
+                          </button>
+                        </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Formulario para nueva alerta */}
+                {assetAlerts.length < MAX_ALERTS_PER_ASSET && (
+                  <div className={styles.modalFormGroup}>
+                    <label className={styles.modalLabel} htmlFor="alertPrice">
+                      Valor de Alerta
+                    </label>
+                    <input
+                      type="number"
+                      id="alertPrice"
+                      step="0.01"
+                      min="0.01"
+                      value={alertPrice}
+                      onChange={(e) => {
+                        // Solo permitir números y punto decimal
+                        const value = e.target.value;
+                        // Permitir números, punto decimal y vacío
+                        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                          setAlertPrice(value);
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        // Prevenir caracteres no numéricos excepto punto, backspace, delete, tab, arrow keys
+                        const allowedKeys = [
+                          'Backspace', 'Delete', 'Tab', 'Escape', 'Enter',
+                          'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+                          'Home', 'End'
+                        ];
+                        const isNumber = /[0-9]/.test(e.key);
+                        const isDot = e.key === '.';
+                        const isAllowedKey = allowedKeys.includes(e.key);
+                        
+                        if (!isNumber && !isDot && !isAllowedKey) {
+                          e.preventDefault();
+                        }
+                        
+                        // Prevenir múltiples puntos
+                        if (isDot && alertPrice.includes('.')) {
+                          e.preventDefault();
+                        }
+                      }}
+                      className={styles.modalInput}
+                      placeholder="Ingrese el valor de alerta"
+                      required
+                      disabled={isSavingAlert}
+                    />
+                    <small className={styles.modalHint}>
+                      Se generará una notificación cuando el precio alcance o supere este valor.
+                    </small>
+                  </div>
+                )}
+
+                {assetAlerts.length >= MAX_ALERTS_PER_ASSET && (
+                  <div className={styles.alertLimitReached}>
+                    Has alcanzado el límite de {MAX_ALERTS_PER_ASSET} alertas para este asset.
+                    Elimina una alerta existente para crear una nueva.
+                  </div>
+                )}
+
+                {alertError && (
+                  <div className={styles.newsError} style={{ margin: '1rem 0' }}>
+                    {alertError}
+                  </div>
+                )}
+
+                <div className={styles.modalButtons}>
+                  <button
+                    type="button"
+                    onClick={closeAlertModal}
+                    className={styles.modalCancelBtn}
+                    disabled={isSavingAlert}
+                  >
+                    Cerrar
+                  </button>
+                  {assetAlerts.length < MAX_ALERTS_PER_ASSET && (
+                    <button
+                      type="submit"
+                      className={styles.modalAcceptBtn}
+                      disabled={isSavingAlert || !alertPrice}
+                    >
+                      {isSavingAlert ? 'Guardando...' : 'Agregar Alerta'}
+                    </button>
+                  )}
+                </div>
+              </form>
             </div>
           </div>,
           document.body

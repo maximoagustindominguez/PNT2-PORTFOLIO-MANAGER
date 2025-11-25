@@ -101,6 +101,153 @@
   grid-column: 3;
 }
 
+.notificationsContainer {
+  position: relative;
+}
+
+.notificationsButton {
+  padding: 8px;
+  background: rgba(100, 108, 255, 0.1);
+  border: 1px solid rgba(100, 108, 255, 0.3);
+  border-radius: 8px;
+  color: #646cff;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  position: relative;
+}
+
+.notificationsButton:hover {
+  background: rgba(100, 108, 255, 0.2);
+  border-color: rgba(100, 108, 255, 0.5);
+}
+
+.notificationsButton svg {
+  flex-shrink: 0;
+}
+
+.notificationsDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 360px;
+  max-height: 500px;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.notificationsHeader {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.notificationsTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+}
+
+.markAllReadButton {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid rgba(100, 108, 255, 0.3);
+  border-radius: 6px;
+  color: #646cff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.markAllReadButton:hover {
+  background: rgba(100, 108, 255, 0.1);
+  border-color: rgba(100, 108, 255, 0.5);
+}
+
+.notificationsContent {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.emptyNotifications {
+  padding: 32px 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  border: 2px solid #1a1a1a;
+  z-index: 1;
+}
+
+.notificationsList {
+  display: flex;
+  flex-direction: column;
+}
+
+.notificationItem {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background-color 0.2s;
+}
+
+.notificationItem:last-child {
+  border-bottom: none;
+}
+
+.notificationItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.notificationUnread {
+  background: rgba(100, 108, 255, 0.05);
+  border-left: 3px solid #646cff;
+}
+
+.notificationMessage {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.notificationDate {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
 .userButton {
   padding: 8px 16px;
   background: rgba(100, 108, 255, 0.1);
@@ -206,6 +353,17 @@
   .userActions {
     justify-content: center;
     flex-wrap: wrap;
+  }
+
+  .notificationsButton {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+  }
+
+  .notificationsDropdown {
+    width: 320px;
+    max-width: calc(100vw - 32px);
   }
 
   .userButton {

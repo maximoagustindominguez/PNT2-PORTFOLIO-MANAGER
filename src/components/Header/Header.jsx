@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { APP_TITLE } from '../../constants';
+import { APP_TITLE, CURRENCY_SYMBOL } from '../../constants';
 import { useSessionStore } from '../../store/sessionStore';
+import { useNotificationsStore } from '../../store/notificationsStore';
 import { UserProfile } from '../UserProfile/UserProfile';
 import styles from './Header.module.css';
 
@@ -9,13 +10,27 @@ import logoImageSrc from '../../assets/images/Logo.png';
 
 export const Header = ({ onLogout, onAddAsset }) => {
   const user = useSessionStore((state) => state.user);
+  const { notifications, loadNotifications, markAllAsRead, getUnreadCount } = useNotificationsStore();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const dropdownRef = useRef(null);
+  const notificationsRef = useRef(null);
   
   // Obtener nombre del usuario: primero custom name, luego email
   const customName = user?.user_metadata?.custom_name;
   const userName = customName || (user?.email ? user.email.split('@')[0] : 'Usuario');
+  
+  const unreadCount = getUnreadCount();
+
+  // Cargar notificaciones cuando el usuario inicia sesión
+  useEffect(() => {
+    if (user?.id) {
+      loadNotifications(user.id);
+    } else {
+      useNotificationsStore.getState().clearNotifications();
+    }
+  }, [user?.id, loadNotifications]);
 
   // Cerrar dropdown al hacer clic fuera
   useEffect(() => {
@@ -23,16 +38,28 @@ export const Header = ({ onLogout, onAddAsset }) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setIsNotificationsOpen(false);
+      }
     };
 
-    if (isDropdownOpen) {
+    if (isDropdownOpen || isNotificationsOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isDropdownOpen]);
+  }, [isDropdownOpen, isNotificationsOpen]);
+
+  // Manejar "Marcar todas como leídas"
+  const handleMarkAllAsRead = async () => {
+    if (user?.id) {
+      await markAllAsRead(user.id);
+      // Recargar notificaciones para actualizar el estado
+      await loadNotifications(user.id);
+    }
+  };
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
@@ -62,7 +89,7 @@ export const Header = ({ onLogout, onAddAsset }) => {
           )}
         </div>
         {onLogout && user && (
-          <div className={styles.userActions} ref={dropdownRef}>
+          <div className={styles.userActions}>
             {onAddAsset && (
               <button
                 type="button"
@@ -87,46 +114,131 @@ export const Header = ({ onLogout, onAddAsset }) => {
                 Agregar Asset
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={styles.userButton}
-              aria-label={`Usuario: ${userName}`}
-              aria-expanded={isDropdownOpen}
-            >
-              <svg
-                className={styles.userIcon}
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            <div ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDropdownOpen(!isDropdownOpen);
+                  setIsNotificationsOpen(false);
+                }}
+                className={styles.userButton}
+                aria-label={`Usuario: ${userName}`}
+                aria-expanded={isDropdownOpen}
               >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              Hola, {userName}
-              <span className={styles.arrow}>{isDropdownOpen ? '▲' : '▼'}</span>
-            </button>
-            
-            {isDropdownOpen && (
-              <div className={styles.dropdown}>
-                <div className={styles.dropdownContent}>
-                  <UserProfile />
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className={styles.logoutButton}
-                    aria-label="Cerrar sesión"
-                  >
-                    Cerrar sesión
-                  </button>
+                <svg
+                  className={styles.userIcon}
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                Hola, {userName}
+                <span className={styles.arrow}>{isDropdownOpen ? '▲' : '▼'}</span>
+              </button>
+              
+              {isDropdownOpen && (
+                <div className={styles.dropdown}>
+                  <div className={styles.dropdownContent}>
+                    <UserProfile />
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className={styles.logoutButton}
+                      aria-label="Cerrar sesión"
+                    >
+                      Cerrar sesión
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+            <div ref={notificationsRef} className={styles.notificationsContainer}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNotificationsOpen(!isNotificationsOpen);
+                  setIsDropdownOpen(false);
+                  // Recargar notificaciones al abrir
+                  if (!isNotificationsOpen && user?.id) {
+                    loadNotifications(user.id);
+                  }
+                }}
+                className={styles.notificationsButton}
+                aria-label="Notificaciones"
+                aria-expanded={isNotificationsOpen}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className={styles.notificationBadge}>{unreadCount}</span>
+                )}
+              </button>
+              
+              {isNotificationsOpen && (
+                <div className={styles.notificationsDropdown}>
+                  <div className={styles.notificationsHeader}>
+                    <h3 className={styles.notificationsTitle}>Notificaciones</h3>
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleMarkAllAsRead}
+                        className={styles.markAllReadButton}
+                        aria-label="Marcar todas como leídas"
+                      >
+                        Marcar todas como leídas
+                      </button>
+                    )}
+                  </div>
+                  <div className={styles.notificationsContent}>
+                    {notifications.length === 0 ? (
+                      <div className={styles.emptyNotifications}>
+                        No hay notificaciones
+                      </div>
+                    ) : (
+                      <div className={styles.notificationsList}>
+                        {notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`${styles.notificationItem} ${!notification.isRead ? styles.notificationUnread : ''}`}
+                          >
+                            <div className={styles.notificationMessage}>
+                              {notification.message}
+                            </div>
+                            <div className={styles.notificationDate}>
+                              {new Date(notification.createdAt).toLocaleDateString('es-AR', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
